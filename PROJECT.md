@@ -56,7 +56,7 @@ This file is the source of truth. Build **one phase at a time** (see "Build Phas
 | LLM | **Gemini** via `@google/genai` or REST, **streaming** | Check current model names before coding; Lila's `.env.example` uses `gemini-3.5-flash-lite` for fast chat. |
 | TTS + cloning | **ElevenLabs** streaming TTS, **Instant Voice Cloning** | Use the `/stream` TTS endpoint. Verify the current API and model ids in ElevenLabs docs before coding. |
 | STT | Default: send recorded audio (MediaRecorder) directly to **Gemini** as audio input to save a hop. Alternative: ElevenLabs Scribe. | Decide in Phase 1 after measuring latency. |
-| Storage | SQLite (`better-sqlite3`) behind a thin repository module | If deployed serverless, swap the repository for Supabase/Turso. Keep the interface small. |
+| Storage | **PostgreSQL** (`pg`) behind a thin repository module | Use `DATABASE_URL` server-side. Local Docker Compose or a hosted PostgreSQL database; keep the interface small. User-selected on October 9, 2026. |
 | Scheduling | In-app: a client timer plus a server `/api/due-checkins` poll | v1 only works while the app is open; real push is roadmap. |
 | Notifications to caregiver | In-app dashboard flag plus optional email or SMS stub | Use a stub interface; do not wire real SMS unless time allows. |
 | Hosting | Local + HTTPS tunnel for phone demo, or Vercel | Microphone access requires HTTPS on phones. |
@@ -67,7 +67,7 @@ GEMINI_API_KEY=
 GEMINI_CHAT_MODEL=
 ELEVENLABS_API_KEY=
 ELEVENLABS_TTS_MODEL=
-DATABASE_PATH=./data/familiar.db
+DATABASE_URL=postgresql://familiar:familiar_local@127.0.0.1:5432/familiar
 ```
 
 ## 5. Reuse From the Lila Repo
@@ -92,7 +92,7 @@ Latency approach to implement (the pipeline is STT -> LLM -> TTS, and every hop 
 4. Keep replies to 1-2 sentences.
 5. Log timings per turn.
 
-## 6. Data Model (SQLite)
+## 6. Data Model (PostgreSQL)
 
 - `patient` (id, name, preferred_name, birth_year?, notes, ai_disclosure_acknowledged_at, created_at)
 - `caregiver` (id, patient_id, name, email, phone?, role)
@@ -155,7 +155,7 @@ Browser PWA (patient)  --audio-->  /api/converse  --> Gemini (stream text)
         |                               |
         |                          safety.ts (keywords + [[flag]])
         |                               |
-Caregiver UI --> /api/* --> SQLite (repository)  <-- scheduler (due check-ins)
+Caregiver UI --> /api/* --> PostgreSQL (repository) <-- scheduler (due check-ins)
                                         |
                               notify (stub: dashboard / email)
 ```
@@ -192,12 +192,12 @@ Each phase lists **Goal, Tasks, Acceptance, Not yet**. Estimated hours total abo
 ### Phase 0: Scaffold (about 2h)
 **Goal:** runnable app, env, DB, design tokens.
 - Next.js + TS + Tailwind project; PWA manifest and icons; `.env.example`; `.gitignore` includes `.env.local` and `data/`.
-- Repository module for SQLite with migrations for the schema in section 6.
+- Repository module for PostgreSQL with transactional migrations for the schema in section 6.
 - Accessible base components: `BigButton`, `ScreenShell`, `Banner` (AI disclosure).
 - Two routes: `/` (patient home) and `/caregiver` (setup/dashboard).
 - Health check route verifying env keys are present (never print them).
 
-**Acceptance:** `npm run dev` serves both routes; DB file is created; lint and typecheck pass.
+**Acceptance:** `npm run dev` serves both routes; PostgreSQL migrations apply successfully; lint and typecheck pass.
 **Not yet:** any AI calls.
 
 ### Phase 1: Talk loop with one stock voice (about 6h) ★ riskiest, do early

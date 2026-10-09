@@ -1,54 +1,63 @@
-# Familiar
+﻿# Familiar
 
-A voice companion for people with mild dementia who spend a lot of time alone. It talks with them in AI-cloned voices of family and friends, recorded with their consent, and always tells the patient that the voices are AI.
+A calm voice companion for people with mild dementia who spend time alone. Future phases add AI recreations of consenting family members' voices, always labeled as AI.
 
-Built for a health-themed hackathon (ElevenLabs "Best Use of Voice" track). Planned as a web app / PWA that runs on a phone or tablet.
+**Current build: Phase 0 scaffold.** Patient home, caregiver setup, PostgreSQL repository and migrations, accessible components, PWA manifest and icons, and a configuration health check. Voice conversations, cloning, reminders, summaries, and safety notifications are not implemented yet.
 
-> Status: planning. No code yet. The full build plan is in [PROJECT.md](PROJECT.md).
+The source of truth is [PROJECT.md](PROJECT.md). PostgreSQL replaces the original SQLite recommendation at the user's request. Build one phase at a time and complete its acceptance checks before moving on.
 
-## What it does
+## Run locally
 
-- **Companion conversation:** the patient taps to talk, and Gemini replies in a family member's cloned voice with a personality that resembles theirs.
-- **Voice rotation:** the conversation moves between several family voices to feel varied and real.
-- **Reminders and check-ins:** the app speaks first at scheduled times, in a trusted voice.
-- **Caregiver controls:** family sets topics to avoid or steer toward, and facts the AI must never get wrong.
-- **Safety:** concerning statements notify caregivers; emergencies show a large "Call 911" button. The app never auto-dials.
+Requires Node.js 22.13+ and a running PostgreSQL database (17+ recommended). Docker Compose is optional if you already have PostgreSQL.
 
-## Principles
-
-1. Transparent: voices are always labeled as AI recreations, and the AI never claims to be the real person.
-2. Consent first: no voice is cloned without the owner's recorded consent.
-3. Calm, simple, accessible UI.
-4. Not medical advice.
-
-## Planned stack
-
-Next.js + TypeScript, Gemini (streaming), ElevenLabs (streaming TTS and Instant Voice Cloning), SQLite.
-
-## Getting started (once Phase 0 is built)
-
-```bash
-cp .env.example .env.local   # add GEMINI_API_KEY and ELEVENLABS_API_KEY
-npm install
-npm run dev
+```powershell
+npm.cmd install
+Copy-Item .env.example .env.local
+# If using Docker Desktop:
+docker compose up -d
+npm.cmd run db:migrate
+npm.cmd run dev
 ```
 
-Phones need HTTPS for microphone access, so use a tunnel or a deployed URL for device testing.
+Open [http://127.0.0.1:3000](http://127.0.0.1:3000) for patient home and [http://127.0.0.1:3000/caregiver](http://127.0.0.1:3000/caregiver) for setup. On other shells, use `npm` instead of `npm.cmd`.
 
-## Working with Codex
+For an existing database, set `DATABASE_URL` in `.env.local` to its connection URL. The database user needs permission to create the `familiar` schema. Use your provider's required TLS settings in its URL; certificate verification is not disabled in code. Do not commit `.env.local`.
 
-1. Give Codex [PROJECT.md](PROJECT.md).
-2. Ask it to build **one phase at a time** (Phase 0 through 8) and stop when that phase's acceptance checks pass.
-3. Commit after each phase.
-4. Have Codex ask about anything listed under "Open Questions" in PROJECT.md instead of guessing.
+Phase 0 needs only `DATABASE_URL`. Leave Gemini and ElevenLabs keys blank until Phase 1. No provider is called in Phase 0.
 
-## Project files
+Without a database, both pages still render. The caregiver page explains the connection problem and disables saving. No setup data is faked or saved in browser storage.
 
-| File | Purpose |
-|---|---|
-| [PROJECT.md](PROJECT.md) | Product principles, scope, architecture (RESHADED), data model, prompts, safety protocol, build phases |
-| `DECISIONS.md` | To be created during the build; log of decisions such as the speech-to-text choice |
+This scaffold is intended for a local demo. There is no authentication yet; development and production scripts bind to loopback. Add authentication before exposing patient data publicly. Phones will need HTTPS for microphone access in Phase 1.
 
-## Reference
+## Checks
 
-Voice and latency patterns come from the sibling `lila` repository (`src/speech.js`, `src/fast-talker.js`, `web/voice-player.js`). Port the patterns; do not copy the repository.
+```powershell
+npm.cmd run lint
+npm.cmd run typecheck
+npm.cmd test
+npm.cmd run build
+```
+
+Browser and accessibility checks: `npm.cmd run test:e2e`. On Windows they use installed Microsoft Edge. On other systems, first run `npx playwright install chromium`; optionally select a browser with `PLAYWRIGHT_CHANNEL`. The browser tests start and stop their own server on port 3100 and intentionally test the database-unavailable state without touching your database.
+
+Tests use PGlite's isolated PostgreSQL engine for migrations, setup persistence, rollback, consent constraints, and parameterized queries. They do not need or write to your database. The application uses a regular PostgreSQL connection via `pg`.
+
+Phase 0 checks: lint, typecheck, seven unit tests, four desktop/phone browser checks, and the production build pass. Migrations are verified against isolated PostgreSQL. A live PostgreSQL connection and setup save still require a running database with `DATABASE_URL`; these have not been verified on this machine. No Phase 1 work has started.
+
+`GET /api/health` reports database readiness and provider-key presence as booleans, never secret values. Missing or unreachable PostgreSQL returns HTTP 503. A reachable database with absent voice keys returns HTTP 200 and `setup_required`, expected in Phase 0. Key presence does not verify provider account validity.
+
+## Project structure
+
+| Path | Purpose |
+| --- | --- |
+| `src/app/` | Patient and caregiver routes, server action, health route, manifest |
+| `src/components/` | Large buttons, screen shell, disclosure, setup form |
+| `src/lib/db/` | PostgreSQL pool, versioned migrations, thin repository |
+| `tests/` | Database and setup validation tests |
+| `compose.yaml` | Local PostgreSQL, persistent volume, health check |
+| `.env.example` | Environment template |
+| [DECISIONS.md](DECISIONS.md) | Technical choices and remaining questions |
+
+Migrations run on first database access or with `npm run db:migrate`. Patient and caregiver updates share a transaction. The schema includes every table in section 6 of the brief; later phases fill them in. The caregiver dashboard does not retrieve or expose conversation turns.
+
+The PWA manifest supports standalone display and includes standard, maskable, and Apple icons. Offline conversation and push notifications are future work. Regenerate icons with `node scripts/generate-icons.mjs` after editing `public/icon.svg`.
