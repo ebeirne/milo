@@ -10,4 +10,5 @@ next-env.d.ts
 *.log
 .DS_Store
 .verification/
-PROJECT.md/
+/PROJECT.md
+/DECISIONS.md
