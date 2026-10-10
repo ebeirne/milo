@@ -33,7 +33,7 @@ test("health, manifest, icons, and client scripts expose no credentials", async 
   expect(await health.json()).toEqual({
     status: "unavailable", phase: 1,
     database: { configured: false, ready: false, engine: "postgresql" },
-    providers: { gemini: { configured: true }, elevenlabs: { configured: true } },
+    providers: { gemini: { configured: true }, elevenlabs: { configured: true }, anthropic: { configured: false }, typesafe: { configured: false } },
   });
   const manifestResponse = await request.get("/manifest.webmanifest");
   expect(manifestResponse.ok()).toBe(true);

@@ -26,6 +26,8 @@ export default defineConfig({
       DATABASE_URL: "",
       GEMINI_API_KEY: "familiar-test-secret-gemini",
       ELEVENLABS_API_KEY: "familiar-test-secret-elevenlabs",
+      ANTHROPIC_API_KEY: "",
+      TYPESAFE_API_KEY: "",
       NEXT_TELEMETRY_DISABLED: "1",
     },
   },

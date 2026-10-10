@@ -1,7 +1,11 @@
 import { getHousehold } from "@/lib/db/repository";
 import { openConversation, saveConversationTurn } from "@/lib/db/conversations";
-import { streamGemini } from "@/lib/voice/gemini";
-import { providersConfigured } from "@/lib/voice/config";
+import { streamConversation } from "@/lib/voice/conversation-model";
+import { providersConfigured, activeConversationProvider, voiceSettings } from "@/lib/voice/config";
+import { evaluateReply } from "@/lib/voice/jev";
+import { saveEvaluation } from "@/lib/db/evaluations";
+import { after } from "next/server";
+import { randomUUID } from "node:crypto";
 import { conversationStream } from "@/lib/voice/conversation-stream";
 import { audioMime } from "@/lib/voice/protocol";
 import { boundedBody, sameOrigin } from "@/lib/voice/request";
@@ -52,9 +56,23 @@ export async function POST(request: Request) {
   } catch {
     return Response.json({ message: "I couldn’t start this conversation. Please try again." }, { status: 503 });
   }
-  const stream = conversationStream({ conversationId: conversation.id, text, startedAt: started }, request.signal, {
-    reply: (signal) => streamGemini({ text, audio, preferredName, history: conversation.history }, signal),
-    save: (heard, reply) => saveConversationTurn(conversation.id, heard, reply),
+  if (audio && !voiceSettings().geminiKey) {
+    activeTurns.delete(patientId);
+    return Response.json({ message: "Audio transcription isn’t ready. You can type your message instead." }, { status: 503 });
+  }
+  let provider = activeConversationProvider();
+  const evaluationId = randomUUID();
+  let completedTurn: { heard: string; reply: string } | null = null;
+  after(async () => {
+    if (!completedTurn) return;
+    try {
+      const evaluation = await evaluateReply({ ...completedTurn, context: JSON.stringify({ speaker: "AI companion using a stock voice", history: conversation.history }) });
+      await saveEvaluation(evaluationId, conversation.id, provider, evaluation);
+    } catch { console.error("Familiar reply evaluation could not be saved."); }
+  });
+  const stream = conversationStream({ conversationId: conversation.id, text, startedAt: started, evaluationId }, request.signal, {
+    reply: (signal, notice) => streamConversation({ text, audio, preferredName, history: conversation.history }, signal, (model) => { provider = model.provider; notice(model); }),
+    save: async (heard, reply) => { await saveConversationTurn(conversation.id, heard, reply); completedTurn = { heard, reply }; },
     release: () => activeTurns.delete(patientId),
   });
   return new Response(stream, { headers: { "Content-Type": "text/event-stream; charset=utf-8", "Cache-Control": "no-store, no-transform", "X-Accel-Buffering": "no" } });

@@ -1,5 +1,6 @@
 export type ConversationEvent =
-  | { type: "start"; conversationId: string }
+  | { type: "model"; provider: "sonnet" | "gemini"; fallback: boolean }
+  | { type: "start"; conversationId: string; evaluationId?: string }
   | { type: "transcript"; text: string }
   | { type: "sentence"; text: string; ticket: string }
   | { type: "timings"; firstPhraseMs: number }
@@ -11,6 +12,9 @@ export type VoiceConfig = {
   reason?: "setup" | "database" | "providers";
   preferredName?: string;
   label: string;
+  microphoneReady?: boolean;
+  conversationProvider?: "sonnet" | "gemini";
+  evaluatorConfigured?: boolean;
 };
 
 export const STOCK_VOICE_LABEL = "AI stock voice · not a family member’s voice";

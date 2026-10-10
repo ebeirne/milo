@@ -5,6 +5,7 @@ import { Mic, Send, Square, Volume2, MessageCircle } from "lucide-react";
 import { BigButton } from "./big-button";
 import { VoicePlayer } from "@/lib/voice/player";
 import { readSse, STOCK_VOICE_LABEL, type ConversationEvent, type VoiceConfig } from "@/lib/voice/protocol";
+import type { Evaluation } from "@/lib/voice/jev";
 
 type Status = "loading" | "idle" | "starting" | "recording" | "thinking" | "speaking";
 type Metrics = { firstPhraseMs?: number; firstPlaybackMs?: number; firstReplyPlaybackMs?: number; playbackCompleteMs?: number; stopMs?: number };
@@ -24,6 +25,8 @@ export function TalkPanel() {
   const [typed, setTyped] = useState("");
   const [metrics, setMetrics] = useState<Metrics>({});
   const [debug, setDebug] = useState(false);
+  const [model, setModel] = useState<{ provider: "sonnet" | "gemini"; fallback: boolean } | null>(null);
+  const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
   const [level, setLevel] = useState(0);
   const [seconds, setSeconds] = useState(0);
   const [volume, setVolume] = useState(80);
@@ -143,6 +146,8 @@ export function TalkPanel() {
     metricRef.current = {};
     setMetrics({});
     setReply("");
+    setEvaluation(null);
+    setModel(null);
     setMessage("");
     updateStatus("thinking");
     if (conversationId.current) data.set("conversationId", conversationId.current);
@@ -162,6 +167,7 @@ export function TalkPanel() {
     }
     let streamFinished = false;
     let hadError = false;
+    let evaluationId: string | undefined;
     try {
       const response = await fetch("/api/converse", { method: "POST", body: data, signal: active.signal });
       if (!response.ok || !response.body) {
@@ -172,7 +178,8 @@ export function TalkPanel() {
       for await (const eventData of readSse(response.body)) {
         if (currentVersion !== version.current) return;
         const event = JSON.parse(eventData) as ConversationEvent;
-        if (event.type === "start") conversationId.current = event.conversationId;
+        if (event.type === "start") { conversationId.current = event.conversationId; evaluationId = event.evaluationId; }
+        if (event.type === "model") setModel({ provider: event.provider, fallback: event.fallback });
         if (event.type === "transcript") setHeard(event.text);
         if (event.type === "error") { setMessage(event.message); hadError = true; }
         if (event.type === "timings") addMetrics({ firstPhraseMs: event.firstPhraseMs });
@@ -204,6 +211,20 @@ export function TalkPanel() {
       addMetrics({ playbackCompleteMs: Math.round(performance.now() - started) });
       if (process.env.NODE_ENV === "development") console.info("Familiar turn timings (ms)", { ...metricRef.current });
       if (!hadError) setMessage("");
+      if (debug && conversationId.current && evaluationId) {
+        const id = conversationId.current;
+        const reviewId = evaluationId;
+        void (async () => {
+          for (let attempt = 0; attempt < 7 && currentVersion === version.current; attempt++) {
+            try {
+              const result = await fetch(`/api/evaluations?conversationId=${encodeURIComponent(id)}&evaluationId=${encodeURIComponent(reviewId)}`, { signal: active.signal });
+              const value = await result.json() as { evaluation?: Evaluation | null };
+              if (value.evaluation && currentVersion === version.current) { setEvaluation(value.evaluation); return; }
+            } catch { return; }
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+          }
+        })();
+      }
     } catch (error) {
       if (currentVersion !== version.current || active.signal.aborted) return;
       setMessage(error instanceof Error ? error.message : "I’m having trouble right now. Please try again.");
@@ -299,9 +320,10 @@ export function TalkPanel() {
       <p className="talk-instruction">Tap Talk to speak. Tap Finish when you’re done.</p>
       <div className="voice-wave" aria-hidden="true">{Array.from({ length: 19 }, (_, index) => <span key={index} style={{ height: `${8 + Math.min(level * 900, 55) * (0.3 + Math.sin(index * 1.9) ** 2 * 0.7)}px` }} />)}</div>
       <p className="talk-status" role="status" aria-live="polite">{statusText[status]}{status === "recording" && <span className="recording-time"> {seconds}s / 60s</span>}</p>
+      {config?.ready && config.microphoneReady === false && <p className="talk-message">Voice input isn’t ready. You can type a message below.</p>}
       {config && !config.ready && <div className="talk-notice"><p>{config.reason === "setup" ? "Let’s set up your space first." : "Voice conversations aren’t ready yet. Please ask the person setting up Familiar for help."}</p><BigButton href="/caregiver" secondary>Go to family &amp; setup</BigButton></div>}
       <div className="talk-controls">
-        <BigButton className="talk-button" disabled={!config?.ready || busy} onClick={() => status === "recording" ? finishRecording() : void startRecording()}>
+        <BigButton className="talk-button" disabled={!config?.ready || config.microphoneReady === false || busy} onClick={() => status === "recording" ? finishRecording() : void startRecording()}>
           {status === "recording" ? <><Square size={30} aria-hidden="true" />Finish speaking</> : <><Mic size={34} aria-hidden="true" />Talk</>}
         </BigButton>
         <BigButton secondary className="stop-button" disabled={status === "idle" || status === "loading"} onClick={stop}><Square size={24} aria-hidden="true" />Stop</BigButton>
@@ -313,8 +335,9 @@ export function TalkPanel() {
         <summary>Prefer to type?</summary>
         <form onSubmit={(event) => void sendTyped(event)}><label htmlFor="typed-message">Your message</label><textarea id="typed-message" value={typed} onChange={(event) => setTyped(event.target.value)} maxLength={2000} rows={3} disabled={!config?.ready || status !== "idle"} /><BigButton type="submit" disabled={!config?.ready || status !== "idle" || !typed.trim()}><Send size={23} aria-hidden="true" />Send message</BigButton></form>
       </details>
-      <p className="talk-privacy">Your recording is sent to the AI provider for a reply. Familiar doesn’t save audio. This companion does not call or notify anyone.</p>
+      <p className="talk-privacy">AI services process your recording and words to make a reply and review its quality. Familiar doesn’t save audio. This companion does not call or notify anyone.</p>
       {debug && <details className="latency-panel" open><summary>Turn timing</summary><dl>{([ ["First sentence from server", "firstPhraseMs"], ["First audio (includes filler)", "firstPlaybackMs"], ["First reply audio", "firstReplyPlaybackMs"], ["Playback complete", "playbackCompleteMs"], ["Stop handler", "stopMs"] ] as const).map(([label, key]) => <div key={key}><dt>{label}</dt><dd>{metrics[key] === undefined ? "—" : `${metrics[key]} ms`}</dd></div>)}</dl><p>Browser playback timing; speaker audibility and phone performance need device testing.</p>{heard && <p>Heard: {heard}</p>}</details>}
+      {debug && <details className="latency-panel" open><summary>Conversation models</summary><p>Conversation: {model?.provider ?? config?.conversationProvider ?? "loading"}{model?.fallback ? " (Gemini fallback)" : ""}</p><p>Jev: {evaluation?.status ?? (config?.evaluatorConfigured ? "awaiting a completed reply" : "key not configured")}</p>{evaluation?.status === "completed" && <dl>{Object.entries(evaluation.judgments).map(([check, judgment]) => judgment && <div key={check}><dt>{check.replaceAll("_", " ")}</dt><dd>{judgment.choice} · confidence {judgment.confidence.toFixed(2)}</dd></div>)}</dl>}<p>Evaluation only. Confidence describes the model’s judgment, not verified correctness. Reviews do not change speech or emergency handling.</p></details>}
     </section>
   );
 }

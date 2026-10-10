@@ -2,8 +2,8 @@ import "server-only";
 import { ReplyParser, type ConversationEvent } from "./protocol";
 import { speechTicket } from "./tickets";
 
-export function conversationStream(input: { conversationId: string; text?: string; startedAt: number }, requestSignal: AbortSignal, dependencies: {
-  reply: (signal: AbortSignal) => AsyncIterable<string>;
+export function conversationStream(input: { conversationId: string; text?: string; startedAt: number; evaluationId?: string }, requestSignal: AbortSignal, dependencies: {
+  reply: (signal: AbortSignal, notice: (model: { provider: "sonnet" | "gemini"; fallback: boolean }) => void) => AsyncIterable<string>;
   save: (heard: string, reply: string) => Promise<void>;
   release: () => void;
 }): ReadableStream<Uint8Array> {
@@ -21,7 +21,7 @@ export function conversationStream(input: { conversationId: string; text?: strin
         let heard = input.text ?? "";
         let firstPhraseMs: number | null = null;
         try {
-          emit({ type: "start", conversationId: input.conversationId });
+          emit({ type: "start", conversationId: input.conversationId, ...(input.evaluationId ? { evaluationId: input.evaluationId } : {}) });
           const parser = new ReplyParser();
           const sendSentences = (sentences: string[]) => {
             if (!heard && parser.transcript) {
@@ -34,7 +34,7 @@ export function conversationStream(input: { conversationId: string; text?: strin
               previousText += `${sentence} `;
             }
           };
-          for await (const chunk of dependencies.reply(signal)) sendSentences(parser.push(chunk));
+          for await (const chunk of dependencies.reply(signal, (model) => emit({ type: "model", ...model }))) sendSentences(parser.push(chunk));
           sendSentences(parser.push("", true));
           if (!previousText.trim()) throw new Error("Empty reply");
           signal.throwIfAborted();

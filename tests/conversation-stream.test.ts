@@ -7,7 +7,7 @@ import { readSpeechTicket } from "../src/lib/voice/tickets";
 test("audio transcript and spoken replies persist together, with contextual speech tickets", async () => {
   let saved: string[] = [];
   let releases = 0;
-  const body = conversationStream({ conversationId: "test", startedAt: performance.now() }, new AbortController().signal, {
+  const body = conversationStream({ conversationId: "test", evaluationId: "unique-review-for-this-turn", startedAt: performance.now() }, new AbortController().signal, {
     async *reply() {
       yield "[[heard: I saw a bird.]] [[mood:happy]] That sounds nice.";
       yield " What color was it? [[remember: unapproved fact]]";
@@ -18,6 +18,7 @@ test("audio transcript and spoken replies persist together, with contextual spee
   const events: ConversationEvent[] = [];
   for await (const data of readSse(body)) events.push(JSON.parse(data));
   assert.equal(events[0].type, "start");
+  assert.deepEqual(events[0], { type: "start", conversationId: "test", evaluationId: "unique-review-for-this-turn" });
   assert.deepEqual(events.find((event) => event.type === "transcript"), { type: "transcript", text: "I saw a bird." });
   const sentences = events.filter((event) => event.type === "sentence");
   assert.deepEqual(sentences.map((event) => event.text), ["That sounds nice.", "What color was it?"]);

@@ -50,7 +50,8 @@ test("typed replies play in sentence order, with accessible controls and measure
   await page.route("**/api/converse", async (route) => {
     sentText = route.request().postDataBuffer()?.includes(Buffer.from("Hello there")) ?? false;
     await route.fulfill({ contentType: "text/event-stream", body: eventStream([
-      { type: "start", conversationId: "00000000-0000-4000-8000-000000000001" },
+      { type: "start", conversationId: "00000000-0000-4000-8000-000000000001", evaluationId: "00000000-0000-4000-8000-000000000002" },
+      { type: "model", provider: "sonnet", fallback: false },
       { type: "sentence", text: "Hello, Liz.", ticket: "first" },
       { type: "sentence", text: "How is your day?", ticket: "second" },
       { type: "timings", firstPhraseMs: 75 }, { type: "done" },
@@ -61,6 +62,13 @@ test("typed replies play in sentence order, with accessible controls and measure
     if (first) await new Promise((resolve) => setTimeout(resolve, 200));
     await route.fulfill({ contentType: "audio/wav", body: wave(first ? 0.4 : 0.6, first ? 220 : 440) });
   });
+  await page.route("**/api/evaluations?*", (route) => {
+    const params = new URL(route.request().url()).searchParams;
+    expect(params.get("evaluationId")).toBe("00000000-0000-4000-8000-000000000002");
+    return route.fulfill({ json: { evaluation: { status: "completed", model: "jev-test", elapsedMs: 100, judgments: {
+      invented_memory: { choice: "clear", confidence: 0.9, probabilities: { clear: 0.94, present: 0.03, uncertain: 0.03 } },
+    } } } });
+  });
   await prepare(page);
   expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze()).violations).toEqual([]);
   await page.getByText("Prefer to type?", { exact: true }).click();
@@ -69,6 +77,8 @@ test("typed replies play in sentence order, with accessible controls and measure
   await expect(page.getByText("Hello, Liz. How is your day?", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Talk", exact: true })).toBeEnabled();
   expect(sentText).toBe(true);
+  await expect(page.getByText("Jev: completed", { exact: true })).toBeVisible();
+  await expect(page.getByText("Conversation: sonnet", { exact: true })).toBeVisible();
   const starts = await page.evaluate(() => (window as unknown as { familiarAudioAudit: { starts: { duration: number; time: number }[] } }).familiarAudioAudit.starts);
   expect(starts.map((start) => Math.round(start.duration * 100))).toEqual([15, 40, 60]);
   expect(starts[2].time - (starts[1].time + starts[1].duration)).toBeLessThan(0.01);

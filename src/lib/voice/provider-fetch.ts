@@ -13,7 +13,7 @@ export function providerFetch(url: string, options: {
   return new Promise((resolve, reject) => {
     options.signal.throwIfAborted();
     const target = new URL(url);
-    if (target.protocol !== "https:" || !["generativelanguage.googleapis.com", "api.elevenlabs.io"].includes(target.hostname)) {
+    if (target.protocol !== "https:" || !["generativelanguage.googleapis.com", "api.elevenlabs.io", "api.anthropic.com", "api.typesafe.ai"].includes(target.hostname)) {
       reject(new Error("Unsupported provider"));
       return;
     }

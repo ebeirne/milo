@@ -29,9 +29,9 @@ test("all brief tables are created and migrations can safely run twice", async (
   );
   assert.deepEqual(rows.map((row) => row.table_name), [
     "caregiver", "checkin", "conversation", "flag", "memory_fact", "patient",
-    "reminder", "schema_migrations", "topic_rule", "turn", "voice_profile",
+    "reminder", "reply_evaluation", "schema_migrations", "topic_rule", "turn", "voice_profile",
   ]);
-  assert.equal((await client.query("SELECT * FROM familiar.schema_migrations")).rows.length, 1);
+  assert.equal((await client.query("SELECT * FROM familiar.schema_migrations")).rows.length, 2);
 });
 
 test("setup persists and updates do not create another household", async () => {

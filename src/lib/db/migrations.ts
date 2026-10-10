@@ -114,6 +114,23 @@ const migrations = [
       CREATE INDEX flag_patient_idx ON familiar.flag(patient_id, created_at);
     `,
   },
+  {
+    version: 2,
+    name: "reply_evaluation",
+    sql: `
+      CREATE TABLE familiar.reply_evaluation (
+        id UUID PRIMARY KEY,
+        conversation_id UUID NOT NULL REFERENCES familiar.conversation(id) ON DELETE CASCADE,
+        conversation_provider TEXT NOT NULL CHECK (conversation_provider IN ('sonnet', 'gemini')),
+        status TEXT NOT NULL CHECK (status IN ('completed', 'disabled', 'unavailable')),
+        model TEXT NOT NULL,
+        judgments JSONB NOT NULL CHECK (jsonb_typeof(judgments) = 'object'),
+        elapsed_ms INTEGER NOT NULL CHECK (elapsed_ms >= 0),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+      CREATE INDEX reply_evaluation_conversation_idx ON familiar.reply_evaluation(conversation_id, created_at DESC);
+    `,
+  },
 ];
 
 export async function applyMigrations(client: SqlClient): Promise<void> {
