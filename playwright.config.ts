@@ -28,6 +28,8 @@ export default defineConfig({
       ELEVENLABS_API_KEY: "familiar-test-secret-elevenlabs",
       ANTHROPIC_API_KEY: "",
       TYPESAFE_API_KEY: "",
+      PUBLIC_APP_URL: "",
+      CAREGIVER_ACCESS_CODE: "",
       NEXT_TELEMETRY_DISABLED: "1",
     },
   },

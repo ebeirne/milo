@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
-import { randomUUID } from "node:crypto";
+import { randomUUID, randomBytes } from "node:crypto";
 import { PGlite } from "@electric-sql/pglite";
 import { applyMigrations, type SqlClient } from "../src/lib/db/migrations";
 import { readHousehold, writeHousehold } from "../src/lib/db/repository";
 import type { SetupInput } from "../src/lib/setup";
+import { claimRecordLink, findRecordLink, reserveVoice, tokenHash } from "../src/lib/db/voices";
+import { consentStatement } from "../src/lib/enrollment-contract";
 
 // This isolated PostgreSQL engine is only used in tests. The app uses pg.
 const database = new PGlite();
@@ -29,9 +31,9 @@ test("all brief tables are created and migrations can safely run twice", async (
   );
   assert.deepEqual(rows.map((row) => row.table_name), [
     "caregiver", "checkin", "conversation", "flag", "memory_fact", "patient",
-    "reminder", "reply_evaluation", "schema_migrations", "topic_rule", "turn", "voice_profile",
+    "record_link", "reminder", "reply_evaluation", "schema_migrations", "topic_rule", "turn", "voice_profile",
   ]);
-  assert.equal((await client.query("SELECT * FROM familiar.schema_migrations")).rows.length, 2);
+  assert.equal((await client.query("SELECT * FROM familiar.schema_migrations")).rows.length, 3);
 });
 
 test("setup persists and updates do not create another household", async () => {
@@ -100,5 +102,44 @@ test("SQL-looking names are stored as data", async () => {
     const name = "Liz'); DROP TABLE familiar.patient; --";
     await writeHousehold(client, { ...setup, patientName: name });
     assert.equal((await readHousehold(client)).patient?.name, name);
+  } finally { await client.query("ROLLBACK"); }
+});
+
+test("recording links are hashed, expire, and can only be claimed once at a time", async () => {
+  await client.query("BEGIN");
+  try {
+    await writeHousehold(client, setup);
+    const household = await readHousehold(client);
+    const token = randomBytes(32).toString("base64url");
+    const id = randomUUID();
+    await client.query(`INSERT INTO familiar.record_link (id, patient_id, enrollment_id, token_hash, display_name, relationship, expires_at) VALUES ($1,$2,$3,$4,'Sarah','Daughter',now()+interval '1 hour')`, [id, household.patient!.id, randomUUID(), tokenHash(token)]);
+    assert(await findRecordLink(client, token));
+    assert(await claimRecordLink(client, token));
+    assert.equal(await claimRecordLink(client, token), null);
+    await client.query("UPDATE familiar.record_link SET used_at=now(), claimed_at=NULL WHERE id=$1", [id]);
+    assert.equal(await findRecordLink(client, token), null);
+    assert(await findRecordLink(client, token, true));
+    await client.query("UPDATE familiar.record_link SET used_at=NULL, expires_at=now()-interval '1 hour' WHERE id=$1", [id]);
+    assert.equal(await findRecordLink(client, token, true), null);
+    assert.equal(await claimRecordLink(client, token), null);
+    const { rows } = await client.query<{ token_hash: string }>("SELECT token_hash FROM familiar.record_link WHERE id=$1", [id]);
+    assert.notEqual(rows[0].token_hash, token);
+  } finally { await client.query("ROLLBACK"); }
+});
+
+test("enrollment reservations prevent duplicate or uncertain provider retries", async () => {
+  await client.query("BEGIN");
+  try {
+    await writeHousehold(client, setup);
+    const household = await readHousehold(client);
+    const request = { id: randomUUID(), patientId: household.patient!.id, name: "Sarah", relationship: "Daughter", consentRef: "stored-consent.audio", statement: consentStatement("Sarah"), quality: { duration: 65, rms: 0.06, clipping: 0, contrast: 10, speechFraction: 0.7 } };
+    assert.equal((await reserveVoice(client, request)).reserved, true);
+    await assert.rejects(reserveVoice(client, request), /already being processed/);
+    await client.query("UPDATE familiar.voice_profile SET cloning_status='unknown' WHERE id=$1", [request.id]);
+    await assert.rejects(reserveVoice(client, request), /needs review/);
+    await client.query("UPDATE familiar.voice_profile SET cloning_status='failed' WHERE id=$1", [request.id]);
+    assert.equal((await reserveVoice(client, request)).reserved, true);
+    await client.query("UPDATE familiar.voice_profile SET cloning_status='ready', elevenlabs_voice_id='test-clone' WHERE id=$1", [request.id]);
+    assert.equal((await reserveVoice(client, request)).reserved, false);
   } finally { await client.query("ROLLBACK"); }
 });

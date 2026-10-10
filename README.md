@@ -16,7 +16,7 @@ The intended experience brings together:
 
 Voice owners must give recorded consent before cloning. The companion always identifies voices as AI recreations, never impersonates the real person, and never invents shared memories. It is not a source of medical advice. The planned emergency flow surfaces call options and alerts caregivers; it never automatically dials.
 
-Familiar is in early development. Patient home, caregiver setup, and tap-to-talk or typed conversations in a stock AI voice are available when the database and providers are configured. Family voice cloning, personalization, scheduling, and caregiver summaries are planned.
+Familiar is in early development. Patient home, caregiver setup, stock-voice conversations, and consented family voice recording, cloning, previews, and deletion are available when the database and providers are configured. Family voices will be connected to conversations alongside personas and rotation. Scheduling and caregiver summaries are planned.
 
 ## Tech stack
 
@@ -28,7 +28,8 @@ Familiar is in early development. Patient home, caregiver setup, and tap-to-talk
 | Conversation | Claude Sonnet 5.5 via the Anthropic Messages API; Gemini fallback |
 | Transcription | Gemini audio input |
 | Reply evaluation | TypeSafe Jev, running after replies in the background |
-| Speech | ElevenLabs streaming TTS; family voice cloning is planned |
+| Speech and cloning | ElevenLabs streaming TTS and Instant Voice Cloning |
+| Recording validation | FFmpeg audio decoding, duration/level checks, Gemini consent transcription |
 | Local database | Docker Compose |
 | Testing | Node.js test runner, PGlite, Playwright, axe-core |
 
@@ -68,14 +69,34 @@ Set environment values in `.env.local`, which is ignored by Git.
 | `ELEVENLABS_API_KEY` | ElevenLabs credential; required for speech |
 | `ELEVENLABS_TTS_MODEL` | Speech model; defaults to `eleven_flash_v2_5` |
 | `ELEVENLABS_STOCK_VOICE_ID` | Premade voice ID; defaults to the provider's George example voice |
+| `PUBLIC_APP_URL` | HTTPS origin used for recording invitations on other devices |
+| `CAREGIVER_ACCESS_CODE` | Long random access code (16+ characters) for remotely accessed patient/caregiver pages |
 
 Only `DATABASE_URL` is required for setup. Add Anthropic, Gemini, and ElevenLabs keys for the full conversation pipeline. If the Anthropic key is absent, Gemini keeps conversations working. A missing TypeSafe key disables evaluation without disabling conversation. Model and stock-voice values have defaults. Custom or cloned voices are not accepted by the stock-voice integration. The database user needs permission to create the `familiar` schema. For hosted PostgreSQL, use the provider's connection URL and required TLS settings. Migrations run on first database access or explicitly with `npm run db:migrate`.
 
 The ElevenLabs key needs **Text to Speech** (`text_to_speech`). The built-in George stock voice works with that permission alone. To configure another stock voice ID, also enable **Voices → Read** (`voices_read`); Familiar verifies that other IDs are premade voices before generating speech.
 
+Family voice creation and deletion also need **Voices → Write** (`voices_write`) and a plan with Instant Voice Cloning and available voice slots. If ElevenLabs requires voice-owner verification, complete that in ElevenLabs and use **Check verification** in the library; that status check needs Voices → Read. The app will not preview a voice while required verification is pending.
+
 Without a database connection, pages still render and setup saving is disabled. `/api/health` reports database readiness and provider-key presence without returning credentials.
 
-The current app is intended for local development: authentication is not yet implemented, and the server scripts bind to loopback. Public deployment needs access controls. Microphone access works on localhost; phones need HTTPS.
+The server scripts bind to loopback. Localhost works without an access code. Before sharing recording links outside localhost, configure `PUBLIC_APP_URL` with the HTTPS origin and set a long random `CAREGIVER_ACCESS_CODE`. Patient and caregiver pages then require an access-code session. Recording invitees use their scoped link without an account or access code; they cannot access household pages through it. This is a single-household demo gate, not a production identity system. Microphone access works on localhost; phones need HTTPS.
+
+### Family voice recording
+
+Open **Family voice library** from caregiver setup, or visit `/caregiver/voices`. Choose **Record my voice**, enter the living voice owner's name and relationship, and follow the three steps:
+
+1. Confirm the recording belongs to you.
+2. Agree to the stated use and record the full consent statement exactly as written.
+3. Record 1–3 minutes of clear speech, listen back, and explicitly choose **Create my AI voice**.
+
+The server decodes both recordings and verifies their actual duration and basic audio quality. Gemini transcribes the consent; names, permission, AI labeling, and deletion rights must match the full statement. Negated or withdrawn permission is rejected. Consent evidence is saved before any cloning request. Samples are converted to MP3 for ElevenLabs; temporary local samples are removed after processing. Consent recordings stay under the ignored `data/consent/` directory until voice deletion.
+
+The library provides an AI-labeled test preview and a confirmation step for deletion. Deletion removes the provider voice, local profile, associated invitation, and consent recording. Failed deletions can be retried. A request with an uncertain provider result is held for manual review rather than automatically creating another voice. Recordings and consent attestations do not provide biometric identity verification; the living owner must record their own voice.
+
+For a distant family member, create a recording invitation with their name and relationship. Links expire after 24 hours, allow one successful enrollment, and expose only the invited recording details. The owner can preview the new voice through the link until it expires. Only the token hash is stored in PostgreSQL. A localhost link cannot be opened from someone else's phone; configure the HTTPS origin before sharing it.
+
+Voice creation and deletion are tested with provider stubs. A recognizable clone and physical-phone recording quality require a genuine living owner's consent and sample; synthetic test audio is never used to create a real voice.
 
 ### Conversations
 

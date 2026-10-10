@@ -16,5 +16,5 @@ export function BigButton(props: Props) {
   // Styling-only props must not be passed to the native button.
   void _secondary;
   void _className;
-  return <button {...buttonProps} className={className}>{children}</button>;
+  return <button {...buttonProps} type={buttonProps.type ?? "button"} className={className}>{children}</button>;
 }

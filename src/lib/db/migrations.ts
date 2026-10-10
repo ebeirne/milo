@@ -131,6 +131,29 @@ const migrations = [
       CREATE INDEX reply_evaluation_conversation_idx ON familiar.reply_evaluation(conversation_id, created_at DESC);
     `,
   },
+  {
+    version: 3,
+    name: "voice_enrollment",
+    sql: `
+      ALTER TABLE familiar.voice_profile ADD COLUMN cloning_status TEXT NOT NULL DEFAULT 'ready'
+        CHECK (cloning_status IN ('pending', 'ready', 'verification_required', 'failed', 'unknown', 'deleting'));
+      ALTER TABLE familiar.voice_profile ADD COLUMN consent_statement TEXT NOT NULL DEFAULT '';
+      ALTER TABLE familiar.voice_profile ADD COLUMN sample_quality JSONB NOT NULL DEFAULT '{}'::jsonb;
+      CREATE TABLE familiar.record_link (
+        id UUID PRIMARY KEY,
+        patient_id UUID NOT NULL REFERENCES familiar.patient(id) ON DELETE CASCADE,
+        enrollment_id UUID NOT NULL UNIQUE,
+        token_hash TEXT NOT NULL UNIQUE,
+        display_name TEXT NOT NULL,
+        relationship TEXT NOT NULL,
+        expires_at TIMESTAMPTZ NOT NULL,
+        claimed_at TIMESTAMPTZ,
+        used_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+      CREATE INDEX record_link_expiry_idx ON familiar.record_link(expires_at);
+    `,
+  },
 ];
 
 export async function applyMigrations(client: SqlClient): Promise<void> {

@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["pg"],
+  serverExternalPackages: ["pg", "ffmpeg-static"],
+  outputFileTracingIncludes: { "/api/voices": ["./node_modules/ffmpeg-static/ffmpeg", "./node_modules/ffmpeg-static/ffmpeg.exe"] },
   poweredByHeader: false,
   async headers() {
     return [{

@@ -8,7 +8,7 @@ const agent = state.familiarVoiceAgent ??= new https.Agent({
 });
 
 export function providerFetch(url: string, options: {
-  method?: string; headers: Record<string, string>; body?: string; signal: AbortSignal;
+  method?: string; headers: Record<string, string>; body?: string | Uint8Array; signal: AbortSignal;
 }): Promise<Response> {
   return new Promise((resolve, reject) => {
     options.signal.throwIfAborted();

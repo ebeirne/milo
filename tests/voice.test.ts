@@ -64,7 +64,7 @@ test("provider input uses direct audio and credentials in headers; thinking text
   for await (const chunk of streamGemini({ preferredName: "Liz", history: [], audio: { data: "YXVkaW8=", mimeType: "audio/webm" } }, new AbortController().signal, async (url, options) => {
     assert(!url.includes("test-key"));
     assert.equal(options.headers["x-goog-api-key"], "test-key-gemini");
-    const body = JSON.parse(options.body!);
+    const body = JSON.parse(options.body! as string);
     assert.equal(body.contents[0].parts[0].inlineData.mimeType, "audio/webm");
     assert.equal(body.contents[0].parts.length, 1, "Helper instructions must stay out of the patient's audio turn");
     return new Response(`data: ${JSON.stringify({ candidates: [{ content: { parts: [{ text: "Private thought", thought: true }, { text: "Hello." }] } }] })}\n\n`);
@@ -83,7 +83,7 @@ test("streaming TTS passes previous_text, strips controls, and requires a premad
     assert.equal(options.headers["xi-api-key"], "test-key-elevenlabs");
     if (url.includes("/voices/")) return Response.json({ category: "premade" });
     assert(url.includes("/stream?output_format=mp3_44100_128"));
-    const body = JSON.parse(options.body!);
+    const body = JSON.parse(options.body! as string);
     assert.equal(body.text, "Hello.");
     assert.equal(body.previous_text, "One moment.");
     return new Response(new Uint8Array([1, 2, 3]));

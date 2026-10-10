@@ -11,7 +11,7 @@ test("Sonnet streams only text, uses current low-latency settings, and keeps cre
   for await (const token of streamSonnet({ text: "hello", preferredName: "Liz", history: [] }, new AbortController().signal, async (url, options) => {
     assert.equal(url, "https://api.anthropic.com/v1/messages");
     assert.equal(options.headers["x-api-key"], "test-anthropic-secret");
-    const body = JSON.parse(options.body!);
+    const body = JSON.parse(options.body! as string);
     assert.equal(body.model, "claude-sonnet-5-5");
     assert.deepEqual(body.thinking, { type: "between_tools" });
     assert.equal(body.output_config.effort, "low");
@@ -28,7 +28,7 @@ test("Sonnet streams only text, uses current low-latency settings, and keeps cre
 test("Gemini transcription contains audio only and returns exact words without generating a reply", async () => {
   process.env.GEMINI_API_KEY = "test-gemini-secret";
   const transcript = await transcribeAudio({ data: "YXVkaW8=", mimeType: "audio/wav" }, new AbortController().signal, async (_url, options) => {
-    const body = JSON.parse(options.body!);
+    const body = JSON.parse(options.body! as string);
     assert.equal(body.contents[0].parts.length, 1);
     assert.equal(body.contents[0].parts[0].inlineData.mimeType, "audio/wav");
     assert.equal(body.generationConfig.responseMimeType, "application/json");
@@ -83,7 +83,7 @@ test("Jev sends four independent rubric questions and stores only validated judg
   const result = await evaluateReply({ heard: "hello", reply: "Hello.", context: "No approved personal facts." }, async (url, options) => {
     assert.equal(url, "https://api.typesafe.ai/v1/systemone");
     assert.equal(options.headers.Authorization, "Bearer test-typesafe-secret");
-    const body = JSON.parse(options.body!);
+    const body = JSON.parse(options.body! as string);
     assert.equal(Object.keys(body.questions).length, 4);
     for (const question of Object.values(body.questions) as { type: string }[]) assert.equal(question.type, "choice");
     return Response.json({ model: "jev-1.13.0", answers, extra: "not persisted" });

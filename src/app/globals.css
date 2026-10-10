@@ -125,6 +125,40 @@ code { font-size: 20px; }
 .error-content { padding: 80px 0; text-align: center; }
 .error-content h1 { font-size: 48px; }
 .error-content p { margin: 24px 0; }
+.enrollment-container { max-width: 850px; margin: 40px auto; }
+.enrollment-card { padding: 32px; }
+.enrollment-card h1, .voice-library h1 { font-size: clamp(34px, 4vw, 46px); margin: 12px 0 20px; }
+.enrollment-card p { margin-bottom: 18px; }
+.enrollment-card .big-button, .invitation-card .big-button { margin-top: 22px; }
+.form-note { color: var(--muted); margin: 22px 0; }
+.consent-statement { margin: 24px 0; padding: 24px; border-left: 4px solid var(--forest); background: #e8eddf; border-radius: 0 16px 16px 0; font-size: 22px; line-height: 1.65; }
+.checkbox-row { display: flex; align-items: center; gap: 16px; min-height: 64px; margin: 18px 0; cursor: pointer; }
+.checkbox-row input { min-width: 28px; width: 28px; height: 28px; accent-color: var(--forest); flex-shrink: 0; }
+.recording-box { border: 1px solid var(--line); border-radius: 16px; padding: 24px; margin-top: 24px; background: var(--surface); }
+.recording-heading { display: flex; gap: 16px; justify-content: space-between; flex-wrap: wrap; margin-bottom: 16px; }
+.recording-heading span { color: var(--muted); }
+.recording-box meter { display: block; width: 100%; height: 28px; margin-bottom: 16px; }
+.recording-box .big-button { margin: 0 0 16px; }
+audio { display: block; width: 100%; height: 72px; margin-top: 16px; }
+.text-button { display: inline-flex; align-items: center; justify-content: center; min-height: 56px; padding: 12px 16px; background: transparent; border: 0; border-radius: 10px; text-decoration: underline; color: var(--forest); font-size: 20px; }
+.text-button:disabled { opacity: .5; }
+.sample-script { margin-top: 24px; padding: 24px; background: #eeeee3; border-radius: 16px; }
+.sample-script summary { cursor: pointer; min-height: 56px; font-weight: 600; }
+.sample-script p { margin-top: 20px; }
+.voice-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin-top: 28px; }
+.voice-card, .voice-empty, .invitation-card { padding: 28px; }
+.voice-card p { margin-top: 14px; }
+.voice-state { display: inline-block; padding: 4px 12px; border-radius: 30px; background: #e8eddf; color: var(--forest); }
+.voice-preview { margin-top: 24px; }
+.voice-preview p { margin-top: 16px; }
+.invitation-card { margin-top: 32px; }
+.invitation-card > p { margin-top: 14px; }
+.record-link { padding: 24px; margin-top: 24px; border: 1px solid var(--line); border-radius: 16px; background: #eeeee3; overflow-wrap: anywhere; }
+.record-link label { display: block; }
+.record-link input { width: 100%; min-height: 56px; padding: 12px; border: 1px solid #929d8a; border-radius: 10px; font: inherit; margin-top: 12px; background: var(--surface); }
+.delete-confirm { margin-top: 20px; padding: 20px; background: #f7e9dc; border-radius: 14px; }
+@media (max-width: 760px) { .voice-card-grid { grid-template-columns: 1fr; } }
+@media (max-width: 500px) { .enrollment-card { padding: 22px; } .enrollment-card .big-button, .recording-box .big-button { width: 100%; } .recording-box, .sample-script { padding: 18px; } .consent-statement { padding: 18px; } }
 
 @media (max-width: 1050px) {
   .app-shell { padding: 0 28px; }
