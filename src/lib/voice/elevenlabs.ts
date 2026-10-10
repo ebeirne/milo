@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile, rename } from "node:fs/promises";
 import path from "node:path";
 import { providerFetch } from "./provider-fetch";
-import { voiceSettings } from "./config";
+import { DEFAULT_STOCK_VOICE_ID, voiceSettings } from "./config";
 import { cleanSpeech, FIXED_PHRASES } from "./protocol";
 
 const state = globalThis as unknown as {
@@ -13,6 +13,9 @@ const state = globalThis as unknown as {
 
 async function assertStockVoice(signal: AbortSignal, fetchProvider: typeof providerFetch) {
   const settings = voiceSettings();
+  // The built-in provider stock voice needs only TTS scope. Other IDs must be
+  // checked so a custom/cloned voice cannot bypass consent through configuration.
+  if (settings.stockVoiceId === DEFAULT_STOCK_VOICE_ID) return;
   if (state.familiarStockVoice?.id === settings.stockVoiceId && state.familiarStockVoice.expires > Date.now()) return;
   const response = await fetchProvider(`https://api.elevenlabs.io/v1/voices/${encodeURIComponent(settings.stockVoiceId)}`, {
     headers: { "xi-api-key": settings.elevenlabsKey }, signal,

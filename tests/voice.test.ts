@@ -5,6 +5,7 @@ import { speechTicket, readSpeechTicket } from "../src/lib/voice/tickets";
 import { fillerKey, streamSpeech } from "../src/lib/voice/elevenlabs";
 import { streamGemini, stockPrompt } from "../src/lib/voice/gemini";
 import { boundedBody, sameOrigin } from "../src/lib/voice/request";
+import { DEFAULT_STOCK_VOICE_ID } from "../src/lib/voice/config";
 
 test("fragmented control labels and transcription never reach speech", () => {
   const parser = new ReplyParser();
@@ -91,6 +92,21 @@ test("streaming TTS passes previous_text, strips controls, and requires a premad
   assert.deepEqual(new Uint8Array(await response.arrayBuffer()), new Uint8Array([1, 2, 3]));
   process.env.ELEVENLABS_STOCK_VOICE_ID = "test-unconsented";
   await assert.rejects(streamSpeech("Hello.", "", new AbortController().signal, async () => Response.json({ category: "cloned" })), /stock voice/);
+});
+
+test("the pinned provider stock voice works with TTS permission alone", async () => {
+  process.env.ELEVENLABS_API_KEY = "test-key-tts-only";
+  process.env.ELEVENLABS_STOCK_VOICE_ID = DEFAULT_STOCK_VOICE_ID;
+  let calls = 0;
+  const response = await streamSpeech("Hello.", "", new AbortController().signal, async (url, options) => {
+    calls++;
+    assert.equal(options.method, "POST");
+    assert(url.includes(`/text-to-speech/${DEFAULT_STOCK_VOICE_ID}/stream`));
+    assert(!url.includes("/voices/"), "The built-in stock voice must not require voice-library access");
+    return new Response(new Uint8Array([1, 2, 3]));
+  });
+  assert.equal(calls, 1);
+  assert.equal((await response.arrayBuffer()).byteLength, 3);
 });
 
 test("cross-origin and oversized requests are rejected", async () => {
