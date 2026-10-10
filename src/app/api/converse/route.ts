@@ -7,6 +7,9 @@ import { saveEvaluation } from "@/lib/db/evaluations";
 import { ensureDatabase } from "@/lib/db/database";
 import { promptGuidance, proposeFacts } from "@/lib/db/guidance";
 import type { Guidance } from "@/lib/guidance";
+import { addFlag, awaitingHelpAnswer } from "@/lib/db/flags";
+import { assess } from "@/lib/safety";
+import { notifyCaregiver } from "@/lib/notify";
 import { activeVoices, getRotationPolicy, personaOf } from "@/lib/db/voices";
 import { consentedVoice } from "@/lib/voice/enrollment";
 import { chooseVoice, seemsDistressed } from "@/lib/voice/rotation";
@@ -94,6 +97,7 @@ export async function POST(request: Request) {
   let provider = activeConversationProvider();
   const evaluationId = randomUUID();
   let completedTurn: { heard: string; reply: string } | null = null;
+  let awaitingHelp: Promise<boolean> | undefined;
   after(async () => {
     if (!completedTurn) return;
     try {
@@ -108,6 +112,17 @@ export async function POST(request: Request) {
       completedTurn = { heard, reply };
       // A suggestion that cannot be queued is dropped; it must not fail the spoken reply.
       if (remembered.length) await proposeFacts(await ensureDatabase(), patientId, remembered).catch(() => {});
+    },
+    // Either the keyword screen or the model's label can raise a flag; a database failure must not hide the call button.
+    assess: async (heard, modelTier) => {
+      const database = await ensureDatabase().catch(() => null);
+      // Read once per turn, before this turn adds its own flag.
+      awaitingHelp ??= database ? awaitingHelpAnswer(database, conversation.id).catch(() => false) : Promise.resolve(false);
+      const safety = assess(heard, modelTier, await awaitingHelp);
+      if (!safety) return null;
+      try { if (database && await addFlag(database, patientId, conversation.id, safety)) notifyCaregiver(safety); }
+      catch { console.error("Familiar could not save a safety flag."); }
+      return safety;
     },
     release: () => activeTurns.delete(patientId),
   });

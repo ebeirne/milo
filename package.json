@@ -12,6 +12,7 @@
     "test": "node --conditions=react-server --import tsx --test tests/*.test.ts",
     "test:e2e": "playwright test",
     "db:migrate": "node --conditions=react-server --env-file-if-exists=.env.local --import tsx scripts/migrate.ts",
+    "db:seed": "node --conditions=react-server --env-file-if-exists=.env.local --import tsx scripts/seed-demo.ts",
     "check:models": "node --conditions=react-server --env-file-if-exists=.env.local --import tsx scripts/check-models.ts",
     "check:guidance": "node --conditions=react-server --env-file-if-exists=.env.local --import tsx scripts/check-guidance.ts"
   },

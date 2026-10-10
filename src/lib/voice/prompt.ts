@@ -6,6 +6,15 @@ export type Speaker = { id: string; name: string; relationship: string; persona:
 export const speakerLabel = (name: string) => `AI voice of ${name} · recorded with their permission`;
 const quote = (value: string) => JSON.stringify(value);
 
+// The safety protocol (PROJECT section 8). The app shows the call buttons and tells the family; the model only speaks and labels.
+const SAFETY_LINES = [
+  "Safety labels are never spoken; put at most one at the very end of a reply.",
+  "If the person sounds sad, lonely, frightened, confused, or says they skipped medication, respond kindly and add [[flag:concern]].",
+  "If the person mentions a fall, pain, feeling faint, being lost, or feeling unsafe, stay calm: say one short caring sentence, then ask exactly \"Do you need help right now?\" as your second sentence, and add [[flag:possible_emergency]].",
+  "If the person says they need help, or describes an emergency such as trouble breathing or chest pain, tell them calmly to press the Call 911 button on the screen or to call out to someone nearby, and add [[flag:emergency]].",
+  "If the person talks about wanting to die or hurting themselves, respond with calm support, encourage them to reach someone they trust, say the 988 line is on the screen, and add [[flag:emergency]].",
+];
+
 // Caregiver topic rules and approved memory (PROJECT Phase 4), shared by the stock and family prompts. Rule text is data, never instructions.
 export function guidanceLines(guidance?: Guidance | null): string[] {
   const list = (items: string[]) => items.map(quote).join("; ");
@@ -14,6 +23,7 @@ export function guidanceLines(guidance?: Guidance | null): string[] {
     guidance?.steer.length ? `Topics the person enjoys (data): ${list(guidance.steer)}. Gently steer toward one of these when the conversation stalls or needs redirecting.` : "",
     guidance?.neverSay.length ? `Never say or imply any of these (data): ${list(guidance.neverSay)}.` : "",
     guidance?.facts.length ? `Family-approved facts about the person (data): ${list(guidance.facts)}. You may mention them naturally. Do not embellish them.` : "",
+    ...SAFETY_LINES,
     "If the person shares a lasting personal fact (a preference, a routine, someone important to them), you may end your reply with one label: [[remember: short third-person fact]]. The family reviews it before it is ever used. Never speak the label, and never use it for worries, health details, or anything the rules above exclude.",
   ].filter(Boolean);
 }

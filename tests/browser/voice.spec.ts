@@ -14,7 +14,7 @@ function wave(seconds: number, frequency = 220): Buffer {
   return bytes;
 }
 
-async function prepare(page: Page, fillerSeconds = 0.15) {
+async function prepare(page: Page, fillerSeconds = 0.15, due: () => object[] = () => []) {
   await page.addInitScript(() => {
     const audit = { starts: [] as { duration: number; time: number }[], stops: 0, tracks: [] as MediaStreamTrack[] };
     (window as unknown as { familiarAudioAudit: typeof audit }).familiarAudioAudit = audit;
@@ -36,6 +36,7 @@ async function prepare(page: Page, fillerSeconds = 0.15) {
     };
   });
   await page.route("**/api/voice-config", (route) => route.fulfill({ json: { ready: true, preferredName: "Liz", label: "AI stock voice" } }));
+  await page.route("**/api/due?*", (route) => route.fulfill({ json: { events: due() } }));
   await page.route("**/api/filler?*", (route) => route.fulfill({ contentType: "audio/wav", body: wave(fillerSeconds) }));
   await page.goto("/talk?debug=1");
   await expect(page.getByRole("button", { name: "Talk", exact: true })).toBeEnabled();
@@ -148,6 +149,53 @@ test("microphone denial offers typing, and failed TTS keeps a visible reply", as
   await expect(page.getByText("You can read this reply.", { exact: true })).toBeVisible();
   await expect(page.getByRole("alert").filter({ hasText: "I couldn’t play my voice" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Talk", exact: true })).toBeEnabled();
+});
+
+test("a possible emergency asks first, then offers a call button that never dials by itself", async ({ page }) => {
+  let confirmed = false;
+  await page.route("**/api/converse", (route) => route.fulfill({ contentType: "text/event-stream", body: eventStream([
+    { type: "start", conversationId: "00000000-0000-4000-8000-000000000001" },
+    { type: "safety", tier: "possible_emergency", kind: "general" },
+    { type: "sentence", text: "Do you need help right now?", ticket: "help" }, { type: "done" },
+  ]) }));
+  await page.route("**/api/tts", (route) => route.fulfill({ contentType: "audio/wav", body: wave(0.2) }));
+  await page.route("**/api/flags", (route) => { confirmed = route.request().postDataJSON().conversationId === "00000000-0000-4000-8000-000000000001"; return route.fulfill({ json: { recorded: true } }); });
+  await prepare(page);
+  await page.getByText("Prefer to type?", { exact: true }).click();
+  await page.getByLabel("Your message", { exact: true }).fill("I fell in the kitchen");
+  await page.getByRole("button", { name: "Send message", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Do you need help?" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Call 911" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Yes, I need help" }).click();
+  await expect(page.getByRole("link", { name: "Call 911" })).toHaveAttribute("href", "tel:911");
+  await expect(page.getByRole("link", { name: /Call 988/ })).toHaveCount(0);
+  await expect.poll(() => confirmed).toBe(true);
+  expect(page.url()).toContain("/talk");
+  expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze()).violations).toEqual([]);
+  await page.getByRole("button", { name: "I’m okay now" }).click();
+  await expect(page.getByRole("link", { name: "Call 911" })).toHaveCount(0);
+});
+
+test("a due reminder appears on the Talk screen with its AI voice label and can be marked done", async ({ page }) => {
+  let answered = "";
+  let pending = true;
+  const due = () => pending ? [{
+    id: "00000000-0000-4000-8000-000000000009", kind: "reminder", text: "Time for your morning pills.",
+    speaker: { id: "00000000-0000-4000-8000-00000000000b", name: "Mike", relationship: "Son", label: "AI voice of Mike · recorded with their permission" },
+    sentences: [{ text: "Hello Liz. This is the AI voice of Mike.", ticket: "one" }, { text: "Here is a reminder. Time for your morning pills.", ticket: "two" }],
+  }] : [];
+  await page.route("**/api/due/00000000-0000-4000-8000-000000000009", (route) => { answered = route.request().postDataJSON().action; pending = false; return route.fulfill({ json: { saved: true } }); });
+  await page.route("**/api/tts", (route) => route.fulfill({ contentType: "audio/wav", body: wave(0.2) }));
+  await prepare(page, 0.15, due);
+  await expect(page.getByRole("heading", { name: "A reminder for you" })).toBeVisible();
+  await expect(page.getByText("Time for your morning pills.", { exact: true })).toBeVisible();
+  await expect(page.getByText("AI voice of Mike · recorded with their permission")).toBeVisible();
+  expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze()).violations).toEqual([]);
+  await page.getByRole("button", { name: "Read it to me" }).click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { familiarAudioAudit: { starts: unknown[] } }).familiarAudioAudit.starts.length)).toBeGreaterThanOrEqual(2);
+  await page.getByRole("button", { name: "Done", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "A reminder for you" })).toHaveCount(0);
+  expect(answered).toBe("done");
 });
 
 test("API boundaries reject invalid speech tickets, empty recordings, and foreign origins", async ({ request }) => {

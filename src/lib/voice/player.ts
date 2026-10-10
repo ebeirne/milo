@@ -69,6 +69,28 @@ export class VoicePlayer {
     source.start(start);
   }
 
+  // A soft two-note chime before a scheduled message, so the voice does not start abruptly.
+  chime() {
+    const context = this.initialize();
+    if (context.state !== "running") throw new Error("Audio playback is paused");
+    const start = Math.max(context.currentTime + 0.025, this.nextStart);
+    for (const [index, frequency] of [659.25, 880].entries()) {
+      const tone = context.createOscillator();
+      const envelope = context.createGain();
+      const at = start + index * 0.28;
+      tone.frequency.value = frequency;
+      envelope.gain.setValueAtTime(0, at);
+      envelope.gain.linearRampToValueAtTime(0.25, at + 0.03);
+      envelope.gain.exponentialRampToValueAtTime(0.001, at + 0.6);
+      tone.connect(envelope);
+      envelope.connect(this.gain!);
+      tone.start(at);
+      tone.stop(at + 0.65);
+      tone.onended = () => { tone.disconnect(); envelope.disconnect(); };
+    }
+    this.nextStart = start + 1;
+  }
+
   waitForIdle(): Promise<void> {
     if (!this.sources.size) return Promise.resolve();
     return new Promise((resolve) => this.idleWaiters.push(resolve));

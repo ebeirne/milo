@@ -16,7 +16,7 @@ The intended experience brings together:
 
 Voice owners must give recorded consent before cloning. The companion always identifies voices as AI recreations, never impersonates the real person, and never invents shared memories. It is not a source of medical advice. The planned emergency flow surfaces call options and alerts caregivers; it never automatically dials.
 
-Familiar is in early development. Patient home, caregiver setup, stock-voice conversations, and consented family voice recording, cloning, previews, and deletion are available when the database and providers are configured. Caregivers can give each ready family voice a persona, turn it on for conversations, and choose how several voices take turns; the Talk screen always shows which AI voice is speaking. Scheduling and caregiver summaries are planned.
+Familiar is a hackathon demo, not a medical device. Patient home, caregiver setup, stock-voice conversations, and consented family voice recording, cloning, previews, and deletion are available when the database and providers are configured. Caregivers can give each ready family voice a persona, turn it on for conversations, and choose how several voices take turns; the Talk screen always shows which AI voice is speaking. Caregivers also set topic rules and approved memories, schedule reminders and check-ins, and see summaries, moods, and safety flags. Reminders only play while the Talk screen is open; background push notifications, wake words, and smart speakers are not built.
 
 ## Tech stack
 
@@ -69,6 +69,7 @@ Set environment values in `.env.local`, which is ignored by Git.
 | `ELEVENLABS_API_KEY` | ElevenLabs credential; required for speech |
 | `ELEVENLABS_TTS_MODEL` | Speech model; defaults to `eleven_flash_v2_5` |
 | `ELEVENLABS_STOCK_VOICE_ID` | Premade voice ID; defaults to the provider's George example voice |
+| `TTS_DAILY_CHARACTER_CAP` | Daily limit on generated speech characters; defaults to 40000 |
 | `PUBLIC_APP_URL` | HTTPS origin used for recording invitations on other devices |
 | `CAREGIVER_ACCESS_CODE` | Long random access code (16+ characters) for remotely accessed patient/caregiver pages |
 
@@ -106,9 +107,39 @@ Gemini transcribes recorded audio, then Sonnet streams a short, conversational r
 
 Jev reviews completed replies for invented memories, family impersonation, medical advice, and confusing wording. Reviews run after the response finishes and do not delay or change speech. Only structured judgments are stored; no second copy of the transcript is saved with an evaluation. Each review is tied to its specific reply, so delayed results cannot be mistaken for a newer turn. Confidence is a measure of the model's judgment, not verified correctness. Reviews do not trigger emergency actions.
 
-Conversation text stays on the server for continuity, with the last eight turns included in requests. Turns older than seven days are purged when a conversation starts or resumes. Raw transcripts are not available in the caregiver interface. Caregiver notifications and emergency escalation are not yet implemented.
+Conversation text stays on the server for continuity, with the last eight turns included in requests. Turns older than seven days are purged when a conversation starts or resumes. Raw transcripts are not available in the caregiver interface.
 
 Open `/?debug=1` after setup, or `/talk?debug=1`, to see first-sentence, first-audio, first-reply-audio, playback-completion, and Stop timings, the conversation provider used, and the current reply's Jev review. First audio includes cached filler; it is reported separately from the first generated reply. These measurements describe browser playback, not proof of speaker audibility.
+
+### Topics, memory, and onboarding
+
+**Topics & memory** (`/caregiver/guidance`) holds topics to avoid, topics to steer toward, things never to say, and approved facts about the person. They are part of every prompt, for the stock voice and family voices. The companion may suggest a fact to remember; suggestions wait in a review list and are only used after a caregiver approves them. If the rules cannot be loaded, the turn is refused rather than answered without them.
+
+The first time the Talk screen opens, it explains that the voices are AI recreations and that family sees summaries and concerns, not every word. The person can have it read aloud, and their acknowledgement is saved.
+
+### Reminders and check-ins
+
+**Reminders** (`/caregiver/reminders`) schedules reminders (spoken exactly as written) and check-ins, each at a time, on chosen days, in the stock voice or a family voice that is switched on. While the Talk screen is open it checks every 30 seconds using the device's own clock, plays a chime, and speaks the message, which always begins by saying whose AI voice it is. The person taps **Done** or **Remind me later** (ten minutes). A reminder unanswered for 20 minutes is marked missed and raises a concern for the family. Nothing plays when the app is closed, and browsers only allow sound after the person has touched the page; until then the reminder is shown with a **Read it to me** button.
+
+### Safety
+
+Every message is screened two ways: a reviewable phrase list in `src/lib/safety.ts`, and the model's own `[[flag:…]]` label. Either can escalate. The screen leans toward flagging and discounts plain negations such as "my hip doesn't hurt anymore".
+
+| Tier | Examples | What happens |
+| --- | --- | --- |
+| Concern | loneliness, low mood, confusion, skipped medication | Kind reply; recorded for the family overview |
+| Possible emergency | a fall, pain, feeling faint, lost, or unsafe | The companion asks "Do you need help right now?" and the screen shows **Yes, I need help** / **I'm okay** |
+| Emergency | confirmed need, trouble breathing, chest pain, self-harm language | A large **Call 911** button (`tel:911`); self-harm language also shows **Call 988** |
+
+Familiar never dials. The call buttons appear from the phrase screen even when the model is unavailable. Caregiver notification is an interface in `src/lib/notify.ts` that currently delivers through the family overview and a server log line; email and SMS are not wired. Flags store a category, not the person's words. Location is not collected.
+
+### Their day
+
+**Their day** (`/caregiver/today`) shows open flags with an **Acknowledge** button, one- or two-sentence conversation summaries with a mood, and which reminders were answered in the last 24 hours. Summaries are written by the conversation model when a caregiver opens the page, so there is no "end conversation" step for the person. They are kept after the seven-day turn retention; full conversations are never shown.
+
+### Demo data
+
+`npm run db:seed` fills an empty household with demo topic rules, memory facts, reminders, and a check-in, and creates a demo household if none exists. It never changes existing entries. Family voices are not seeded, because each needs its living owner's recorded consent.
 
 ## Development commands
 
@@ -122,7 +153,9 @@ Open `/?debug=1` after setup, or `/talk?debug=1`, to see first-sentence, first-a
 | `npm run typecheck` | Check TypeScript types |
 | `npm test` | Run database and validation tests |
 | `npm run test:e2e` | Run browser and accessibility checks |
+| `npm run db:seed` | Add demo rules, facts, and reminders where none exist |
 | `npm run check:models` | Compare live models using synthetic prompts and run Jev reviews |
+| `npm run check:guidance` | Check with synthetic prompts that live replies follow topic rules |
 
 Unit tests use isolated PostgreSQL through PGlite and test provider protocols without contacting paid services. Browser tests start their own server on port 3100 and use a fake microphone and synthetic audio to verify recording, sentence order, cancellation, accessibility, and failures. They do not establish live-provider or physical-phone latency. On Windows they use installed Microsoft Edge; on other systems, run `npx playwright install chromium` first. Set `PLAYWRIGHT_CHANNEL` to select another supported browser channel.
 

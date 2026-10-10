@@ -162,6 +162,29 @@ const migrations = [
         CHECK (rotation_policy IN ('single', 'round_robin_per_topic', 'random_weighted'));
     `,
   },
+  {
+    version: 5,
+    name: "due_events_flag_kind_and_summaries",
+    sql: `
+      ALTER TABLE familiar.conversation ADD COLUMN summarized_at TIMESTAMPTZ;
+      ALTER TABLE familiar.flag ADD COLUMN kind TEXT NOT NULL DEFAULT 'general' CHECK (kind IN ('general', 'self_harm'));
+      CREATE TABLE familiar.due_event (
+        id UUID PRIMARY KEY,
+        patient_id UUID NOT NULL REFERENCES familiar.patient(id) ON DELETE CASCADE,
+        kind TEXT NOT NULL CHECK (kind IN ('reminder', 'checkin')),
+        source_id UUID NOT NULL,
+        due_date DATE NOT NULL,
+        text TEXT NOT NULL,
+        voice_profile_id UUID REFERENCES familiar.voice_profile(id) ON DELETE SET NULL,
+        status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'done', 'missed')),
+        remind_after TIMESTAMPTZ NOT NULL DEFAULT now(),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        resolved_at TIMESTAMPTZ,
+        UNIQUE (source_id, due_date)
+      );
+      CREATE INDEX due_event_patient_idx ON familiar.due_event(patient_id, created_at);
+    `,
+  },
 ];
 
 export async function applyMigrations(client: SqlClient): Promise<void> {

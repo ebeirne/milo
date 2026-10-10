@@ -1,15 +1,21 @@
+import { isTier, type SafetyKind, type Tier } from "../safety";
+
 export type ConversationEvent =
   | { type: "model"; provider: "sonnet" | "gemini"; fallback: boolean }
   | { type: "start"; conversationId: string; evaluationId?: string }
   | { type: "speaker"; speaker: SpeakerInfo | null; switched: boolean }
   | { type: "transcript"; text: string }
   | { type: "sentence"; text: string; ticket: string }
+  | { type: "safety"; tier: Tier; kind: SafetyKind }
   | { type: "timings"; firstPhraseMs: number }
   | { type: "error"; message: string }
   | { type: "done" };
 
 // Public speaker details; provider voice IDs never reach the browser.
 export type SpeakerInfo = { id: string; name: string; relationship: string; label: string };
+
+// A reminder or check-in that has come due, ready to be spoken sentence by sentence.
+export type DueEvent = { id: string; kind: "reminder" | "checkin"; text: string; speaker: SpeakerInfo | null; sentences: { text: string; ticket: string }[] };
 
 export type VoiceConfig = {
   ready: boolean;
@@ -76,6 +82,8 @@ export class ReplyParser {
   transcript = "";
   // Facts the model suggests remembering; they go to the caregiver's review queue, never straight into prompts.
   remembered: string[] = [];
+  // The model's own safety label, combined with the keyword screen by the caller.
+  flag: Tier | null = null;
 
   push(chunk: string, final = false): string[] {
     this.pending += chunk;
@@ -89,6 +97,7 @@ export class ReplyParser {
         }
         const label = this.pending.slice(2, end);
         if (label.startsWith("heard:")) this.transcript = label.slice(6).trim().slice(0, 2000);
+        else if (label.startsWith("flag:") && isTier(label.slice(5).trim())) this.flag = label.slice(5).trim() as Tier;
         else if (label.startsWith("remember:") && this.remembered.length < 2) this.remembered.push(label.slice(9).trim().slice(0, 200));
         this.pending = this.pending.slice(end + 2);
       } else if (this.pending === "[" && !final) {

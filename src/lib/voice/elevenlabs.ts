@@ -9,7 +9,15 @@ import { cleanSpeech, FIXED_PHRASES } from "./protocol";
 const state = globalThis as unknown as {
   familiarStockVoice?: { id: string; expires: number };
   familiarFiller?: Map<string, Promise<Uint8Array>>;
+  familiarSpeechBudget?: { day: string; used: number };
 };
+
+// Cost guard: a per-day character cap on generated speech protects the provider quota. Captions still show when it is reached.
+export function spendSpeechBudget(characters: number, cap = voiceSettings().ttsDailyCharacterCap, today = new Date().toISOString().slice(0, 10)): void {
+  const budget = state.familiarSpeechBudget?.day === today ? state.familiarSpeechBudget : (state.familiarSpeechBudget = { day: today, used: 0 });
+  if (budget.used + characters > cap) throw new Error("Daily speech limit reached");
+  budget.used += characters;
+}
 
 async function assertStockVoice(signal: AbortSignal, fetchProvider: typeof providerFetch) {
   const settings = voiceSettings();
@@ -35,6 +43,7 @@ export async function streamSpeech(text: string, previousText: string, signal: A
   const voiceId = cloneVoiceId ?? settings.stockVoiceId;
   const speech = cleanSpeech(text);
   if (!speech) throw new Error("No speech available");
+  spendSpeechBudget(speech.length);
   const response = await fetchProvider(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}/stream?output_format=mp3_44100_128`, {
     method: "POST", signal: activeSignal,
     headers: { "xi-api-key": settings.elevenlabsKey, "Content-Type": "application/json" },

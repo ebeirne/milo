@@ -170,6 +170,26 @@ audio { display: block; width: 100%; height: 72px; margin-top: 16px; }
 .guidance-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
 .guidance-actions { display: flex; align-items: center; gap: 8px; flex: none; }
 .guidance-actions .big-button { margin-top: 0; }
+.help-card { max-width: 720px; margin: 0 auto 28px; padding: 28px; border: 3px solid #8a2a1c; border-radius: 22px; background: #fdf1ea; }
+.help-card h2 { font-size: 34px; }
+.help-card p { margin-top: 12px; font-size: 22px; }
+.help-card .talk-controls { margin-top: 24px; }
+.emergency-button { background: #8a2a1c; border-color: #8a2a1c; color: #fff; min-height: 88px; font-size: 26px; text-decoration: none; }
+.emergency-button:hover:not(:disabled) { background: #6f2015; }
+.due-card { max-width: 720px; margin: 0 auto 28px; padding: 28px; text-align: left; }
+.due-voice { display: flex; align-items: center; gap: 10px; color: var(--forest); }
+.due-card h2 { margin-top: 12px; }
+.due-text { margin-top: 12px; font-size: 26px; line-height: 1.4; }
+.due-card .talk-controls { margin-top: 24px; justify-content: flex-start; }
+.schedule-days { display: flex; flex-wrap: wrap; gap: 4px 16px; border: 0; padding: 0; margin: 20px 0 0; }
+.schedule-days legend { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+.schedule-days .checkbox-row { margin: 0; min-height: 56px; gap: 8px; }
+.day-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin-top: 28px; }
+.day-grid .wide { grid-column: 1 / -1; }
+.flag-emergency, .flag-possible_emergency { border-left: 6px solid #8a2a1c; padding-left: 12px; }
+.flag-concern { border-left: 6px solid #b98a2e; padding-left: 12px; }
+.mood-chip { display: inline-block; padding: 2px 12px; border-radius: 30px; background: #e8eddf; color: var(--forest); margin-left: 8px; }
+@media (max-width: 760px) { .day-grid { grid-template-columns: 1fr; } }
 .onboarding-card { max-width: 720px; margin: 28px auto; padding: 28px; text-align: left; }
 .onboarding-card p { margin-top: 16px; font-size: 24px; line-height: 1.5; }
 .onboarding-card .talk-controls { margin-top: 28px; }

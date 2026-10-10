@@ -16,6 +16,7 @@ export function voiceSettings() {
     elevenlabsKey: process.env.ELEVENLABS_API_KEY?.trim() ?? "",
     ttsModel: process.env.ELEVENLABS_TTS_MODEL?.trim() || "eleven_flash_v2_5",
     stockVoiceId: process.env.ELEVENLABS_STOCK_VOICE_ID?.trim() || DEFAULT_STOCK_VOICE_ID,
+    ttsDailyCharacterCap: Number(process.env.TTS_DAILY_CHARACTER_CAP) > 0 ? Number(process.env.TTS_DAILY_CHARACTER_CAP) : 40000,
   };
 }
 
