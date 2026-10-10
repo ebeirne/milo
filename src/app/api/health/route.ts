@@ -14,14 +14,14 @@ export async function GET() {
     await pool.query("SELECT 1");
     return Response.json({
       status: providers.gemini.configured && providers.elevenlabs.configured ? "ok" : "setup_required",
-      phase: 0,
+      phase: 1,
       database: { configured, ready: true, engine: "postgresql" },
       providers,
     }, { headers: { "Cache-Control": "no-store" } });
   } catch {
     return Response.json({
       status: "unavailable",
-      phase: 0,
+      phase: 1,
       database: { configured, ready: false, engine: "postgresql" },
       providers,
     }, { status: 503, headers: { "Cache-Control": "no-store" } });

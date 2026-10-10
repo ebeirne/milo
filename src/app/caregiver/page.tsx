@@ -48,14 +48,14 @@ export default async function CaregiverPage() {
                 <li><Check size={23} aria-hidden="true" /> Simple controls, at their pace.</li>
               </ul>
             </section>
-            <section className="privacy-note"><LockKeyhole size={25} aria-hidden="true" /><div><h3>A little privacy, too.</h3><p>When conversations are available, family will see summaries and concerns. Full transcripts won’t appear here.</p></div></section>
+            <section className="privacy-note"><LockKeyhole size={25} aria-hidden="true" /><div><h3>A little privacy, too.</h3><p>When summaries are available, family will see an overview and concerns. Full transcripts won’t appear here.</p></div></section>
           </aside>
         </div>
         <section className="coming-section" aria-labelledby="next-title">
           <div className="section-heading"><h2 id="next-title">Room for connection</h2><span className="muted">Coming in later build phases</span></div>
           <div className="feature-grid">
             <article className="card feature-card"><Mic size={29} aria-hidden="true" /><h3>Family voices</h3><p>Record with permission, then add the little things that make a voice feel familiar.</p><span className="empty-status">No voices added</span></article>
-            <article className="card feature-card"><MessageCircle size={29} aria-hidden="true" /><h3>A window into their day</h3><p>Short conversation summaries, moods, and concerns in one gentle overview.</p><span className="empty-status">No conversations yet</span></article>
+            <article className="card feature-card"><MessageCircle size={29} aria-hidden="true" /><h3>A window into their day</h3><p>Short conversation summaries, moods, and concerns in one gentle overview.</p><span className="empty-status">Summaries coming soon</span></article>
             <article className="card feature-card"><Timer size={29} aria-hidden="true" /><h3>Gentle reminders</h3><p>A familiar voice for daily routines and a friendly hello along the way.</p><span className="empty-status">No reminders scheduled</span></article>
           </div>
         </section>

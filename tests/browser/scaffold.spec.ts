@@ -31,7 +31,7 @@ test("health, manifest, icons, and client scripts expose no credentials", async 
   const health = await request.get("/api/health");
   expect(health.status()).toBe(503);
   expect(await health.json()).toEqual({
-    status: "unavailable", phase: 0,
+    status: "unavailable", phase: 1,
     database: { configured: false, ready: false, engine: "postgresql" },
     providers: { gemini: { configured: true }, elevenlabs: { configured: true } },
   });
