@@ -8,6 +8,7 @@ export type Patient = {
   id: string;
   name: string;
   preferred_name: string;
+  disclosure_acknowledged: boolean;
 };
 
 export type Caregiver = {
@@ -25,7 +26,7 @@ export type Household = {
 
 export async function readHousehold(client: SqlClient): Promise<Household> {
   const { rows: patients } = await client.query<Patient>(
-    "SELECT id, name, preferred_name FROM familiar.patient ORDER BY created_at, id LIMIT 1",
+    "SELECT id, name, preferred_name, ai_disclosure_acknowledged_at IS NOT NULL AS disclosure_acknowledged FROM familiar.patient ORDER BY created_at, id LIMIT 1",
   );
   const patient = patients[0] ?? null;
   if (!patient) return { patient: null, caregiver: null, voiceCount: 0 };

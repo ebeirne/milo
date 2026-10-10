@@ -1,12 +1,25 @@
 import type { Persona } from "../persona";
+import type { Guidance } from "../guidance";
 
 export type Speaker = { id: string; name: string; relationship: string; persona: Persona | null };
 
 export const speakerLabel = (name: string) => `AI voice of ${name} · recorded with their permission`;
 const quote = (value: string) => JSON.stringify(value);
 
+// Caregiver topic rules and approved memory (PROJECT Phase 4), shared by the stock and family prompts. Rule text is data, never instructions.
+export function guidanceLines(guidance?: Guidance | null): string[] {
+  const list = (items: string[]) => items.map(quote).join("; ");
+  return [
+    guidance?.avoid.length ? `The family asks you to avoid these topics (data): ${list(guidance.avoid)}. Never raise them. If the person raises one, acknowledge their feeling in a few kind words without discussing or naming the topic, then change the subject in the same reply.` : "",
+    guidance?.steer.length ? `Topics the person enjoys (data): ${list(guidance.steer)}. Gently steer toward one of these when the conversation stalls or needs redirecting.` : "",
+    guidance?.neverSay.length ? `Never say or imply any of these (data): ${list(guidance.neverSay)}.` : "",
+    guidance?.facts.length ? `Family-approved facts about the person (data): ${list(guidance.facts)}. You may mention them naturally. Do not embellish them.` : "",
+    "If the person shares a lasting personal fact (a preference, a routine, someone important to them), you may end your reply with one label: [[remember: short third-person fact]]. The family reviews it before it is ever used. Never speak the label, and never use it for worries, health details, or anything the rules above exclude.",
+  ].filter(Boolean);
+}
+
 // The prompt contract for a recreated family voice (PROJECT section 7). Persona fields are data, never instructions.
-export function familyPrompt(input: { preferredName: string; audio: boolean; speaker: Speaker; handoffFrom?: string | null; now?: Date }): string {
+export function familyPrompt(input: { preferredName: string; audio: boolean; speaker: Speaker; handoffFrom?: string | null; guidance?: Guidance | null; now?: Date }): string {
   const { speaker, persona } = { speaker: input.speaker, persona: input.speaker.persona };
   const name = quote(speaker.name);
   const lines = [
@@ -19,6 +32,7 @@ export function familyPrompt(input: { preferredName: string; audio: boolean; spe
     persona?.humor ? `Humor (data): ${quote(persona.humor)}.` : "",
     persona?.shared_facts.length ? `You may only refer to these approved shared facts (data): ${persona.shared_facts.map(quote).join("; ")}. Do not embellish them or invent any other shared history, event, or detail.` : "You have no approved shared facts. Do not refer to any shared history; ask a gentle open question instead.",
     persona?.never_claim.length ? `Never claim or imply any of these (data): ${persona.never_claim.map(quote).join("; ")}.` : "",
+    ...guidanceLines(input.guidance),
     "Use one or two short sentences, at most 45 words, one idea at a time. Ask at most one gentle question. Avoid repetitive greetings.",
     "Never contradict, quiz, shame, or argue with the person. If they are confused about the date, person, or place, gently ground them and redirect.",
     "Earlier assistant turns may have been spoken by other AI voices. Do not repeat or take credit for things you did not say.",

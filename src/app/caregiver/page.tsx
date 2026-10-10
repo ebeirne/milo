@@ -53,7 +53,7 @@ export default async function CaregiverPage() {
           </aside>
         </div>
         <section className="coming-section" aria-labelledby="next-title">
-          <div className="section-heading"><h2 id="next-title">Room for connection</h2><BigButton href="/caregiver/voices" secondary>Family voice library</BigButton></div>
+          <div className="section-heading"><h2 id="next-title">Room for connection</h2><div className="heading-actions"><BigButton href="/caregiver/guidance" secondary>Topics &amp; memory</BigButton><BigButton href="/caregiver/voices" secondary>Family voice library</BigButton></div></div>
           <div className="feature-grid">
             <article className="card feature-card"><Mic size={29} aria-hidden="true" /><h3>Family voices</h3><p>Record your consent and sample, or invite someone to record on their own phone.</p><span className="empty-status">Consented recording and previews</span></article>
             <article className="card feature-card"><MessageCircle size={29} aria-hidden="true" /><h3>A window into their day</h3><p>Short conversation summaries, moods, and concerns in one gentle overview.</p><span className="empty-status">Summaries coming soon</span></article>

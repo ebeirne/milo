@@ -12,7 +12,8 @@
     "test": "node --conditions=react-server --import tsx --test tests/*.test.ts",
     "test:e2e": "playwright test",
     "db:migrate": "node --conditions=react-server --env-file-if-exists=.env.local --import tsx scripts/migrate.ts",
-    "check:models": "node --conditions=react-server --env-file-if-exists=.env.local --import tsx scripts/check-models.ts"
+    "check:models": "node --conditions=react-server --env-file-if-exists=.env.local --import tsx scripts/check-models.ts",
+    "check:guidance": "node --conditions=react-server --env-file-if-exists=.env.local --import tsx scripts/check-guidance.ts"
   },
   "dependencies": {
     "ffmpeg-static": "5.3.0",

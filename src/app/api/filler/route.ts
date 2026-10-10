@@ -10,8 +10,9 @@ export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   const phrase = params.get("phrase");
   const voiceId = params.get("voice");
-  if (phrase !== "thinking" && phrase !== "disclosure") return Response.json({ message: "Unknown phrase." }, { status: 400 });
-  if (voiceId && !isUuid(voiceId)) return Response.json({ message: "Unknown voice." }, { status: 400 });
+  if (phrase !== "thinking" && phrase !== "disclosure" && phrase !== "onboarding") return Response.json({ message: "Unknown phrase." }, { status: 400 });
+  // The onboarding explanation is Familiar's own words, so only the stock voice reads it.
+  if (voiceId && (!isUuid(voiceId) || phrase === "onboarding")) return Response.json({ message: "Unknown voice." }, { status: 400 });
   try {
     let voice = null;
     if (voiceId) {

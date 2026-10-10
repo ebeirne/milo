@@ -16,6 +16,7 @@ test("fragmented control labels and transcription never reach speech", () => {
   ];
   assert.equal(parser.transcript, "I went outside.");
   assert.deepEqual(sentences, ["That sounds lovely.", "What did you notice?"]);
+  assert.deepEqual(parser.remembered, ["unapproved fact"]);
 });
 
 test("only two sentences are emitted and incomplete labels are discarded", () => {

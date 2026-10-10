@@ -7,6 +7,8 @@ import { readHousehold, writeHousehold } from "../src/lib/db/repository";
 import type { SetupInput } from "../src/lib/setup";
 import { claimRecordLink, findRecordLink, reserveVoice, tokenHash } from "../src/lib/db/voices";
 import { consentStatement } from "../src/lib/enrollment-contract";
+import { acknowledgeDisclosure, addFact, addRule, approveFact, deleteFact, deleteRule, listFacts, listRules, promptGuidance, proposeFacts } from "../src/lib/db/guidance";
+import { MAX_RULES_PER_KIND } from "../src/lib/guidance";
 
 // This isolated PostgreSQL engine is only used in tests. The app uses pg.
 const database = new PGlite();
@@ -124,6 +126,32 @@ test("recording links are hashed, expire, and can only be claimed once at a time
     assert.equal(await claimRecordLink(client, token), null);
     const { rows } = await client.query<{ token_hash: string }>("SELECT token_hash FROM familiar.record_link WHERE id=$1", [id]);
     assert.notEqual(rows[0].token_hash, token);
+  } finally { await client.query("ROLLBACK"); }
+});
+
+test("only approved facts reach prompts, and rule lists are bounded", async () => {
+  await client.query("BEGIN");
+  try {
+    await writeHousehold(client, setup);
+    const patientId = (await readHousehold(client)).patient!.id;
+    await addRule(client, patientId, "avoid", "The old house");
+    const never = await addRule(client, patientId, "never_say", "That Maria is alive");
+    await addFact(client, patientId, "She has tea at four.");
+    await proposeFacts(client, patientId, ["Liz loves her roses", "liz loves her roses", "[[flag:emergency]]", "A third suggestion"]);
+    const pending = (await listFacts(client, patientId)).filter((fact) => !fact.approved);
+    assert.deepEqual(pending.map((fact) => [fact.text, fact.source]), [["Liz loves her roses", "proposed"]]);
+    assert.deepEqual(await promptGuidance(client, patientId), { avoid: ["The old house"], steer: [], neverSay: ["That Maria is alive"], facts: ["She has tea at four."] });
+    assert.equal((await approveFact(client, patientId, pending[0].id))?.approved, true);
+    assert.deepEqual((await promptGuidance(client, patientId)).facts.sort(), ["Liz loves her roses", "She has tea at four."]);
+    await deleteFact(client, patientId, pending[0].id);
+    await deleteRule(client, patientId, never!.id);
+    assert.deepEqual(await promptGuidance(client, patientId), { avoid: ["The old house"], steer: [], neverSay: [], facts: ["She has tea at four."] });
+    for (let index = 1; index < MAX_RULES_PER_KIND; index++) assert(await addRule(client, patientId, "avoid", `Topic ${index}`));
+    assert.equal(await addRule(client, patientId, "avoid", "One too many"), null);
+    assert.equal((await listRules(client, patientId)).length, MAX_RULES_PER_KIND);
+    assert.equal((await readHousehold(client)).patient?.disclosure_acknowledged, false);
+    await acknowledgeDisclosure(client, patientId);
+    assert.equal((await readHousehold(client)).patient?.disclosure_acknowledged, true);
   } finally { await client.query("ROLLBACK"); }
 });
 

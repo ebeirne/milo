@@ -27,6 +27,7 @@ export async function GET() {
     microphoneReady: Boolean(voiceSettings().geminiKey),
     conversationProvider: activeConversationProvider(),
     evaluatorConfigured: Boolean(voiceSettings().typesafeKey),
+    onboarding: Boolean(patient && !patient.disclosure_acknowledged),
   };
   return Response.json(config, { headers: { "Cache-Control": "no-store" } });
 }

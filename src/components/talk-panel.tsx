@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Mic, Send, Square, Volume2, MessageCircle } from "lucide-react";
 import { BigButton } from "./big-button";
 import { VoicePlayer } from "@/lib/voice/player";
-import { readSse, STOCK_VOICE_LABEL, type ConversationEvent, type SpeakerInfo, type VoiceConfig } from "@/lib/voice/protocol";
+import { FIXED_PHRASES, readSse, STOCK_VOICE_LABEL, type ConversationEvent, type SpeakerInfo, type VoiceConfig } from "@/lib/voice/protocol";
 import type { Evaluation } from "@/lib/voice/jev";
 
 type Status = "loading" | "idle" | "starting" | "recording" | "thinking" | "speaking";
@@ -322,6 +322,41 @@ export function TalkPanel() {
     updateStatus("thinking");
     recorder.current.stop();
   }
+
+  async function hearOnboarding() {
+    setMessage("");
+    try {
+      await player.current!.unlock();
+      const audio = await fetch("/api/filler?phrase=onboarding");
+      if (!audio.ok) throw new Error("Voice unavailable");
+      await player.current!.queue(await audio.arrayBuffer());
+    } catch { setMessage("I couldn’t read this aloud. You can read it on the screen."); }
+  }
+
+  async function acknowledgeOnboarding() {
+    player.current?.stop();
+    try {
+      const response = await fetch("/api/onboarding", { method: "POST" });
+      if (!response.ok) throw new Error("Not saved");
+      setConfig((value) => value && { ...value, onboarding: false });
+      setMessage("");
+    } catch { setMessage("That couldn’t be saved. Please try again."); }
+  }
+
+  // Shown once, before the first conversation: what the voices are and what family can see.
+  if (config?.ready && config.onboarding) return (
+    <section className="talk-panel" aria-labelledby="onboarding-title">
+      <h1 id="onboarding-title">Before we talk</h1>
+      <div className="card onboarding-card">
+        {FIXED_PHRASES.onboarding.split(/(?<=\.)\s+/).map((sentence) => <p key={sentence}>{sentence}</p>)}
+        <div className="talk-controls">
+          <BigButton secondary onClick={() => void hearOnboarding()}><Volume2 size={26} aria-hidden="true" />Read this to me</BigButton>
+          <BigButton onClick={() => void acknowledgeOnboarding()}>I understand</BigButton>
+        </div>
+      </div>
+      {message && <p className="talk-message" role="alert">{message}</p>}
+    </section>
+  );
 
   const busy = ["starting", "thinking", "speaking"].includes(status);
   return (

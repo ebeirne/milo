@@ -4,6 +4,9 @@ import { streamConversation } from "@/lib/voice/conversation-model";
 import { providersConfigured, activeConversationProvider, voiceSettings } from "@/lib/voice/config";
 import { evaluateReply } from "@/lib/voice/jev";
 import { saveEvaluation } from "@/lib/db/evaluations";
+import { ensureDatabase } from "@/lib/db/database";
+import { promptGuidance, proposeFacts } from "@/lib/db/guidance";
+import type { Guidance } from "@/lib/guidance";
 import { activeVoices, getRotationPolicy, personaOf } from "@/lib/db/voices";
 import { consentedVoice } from "@/lib/voice/enrollment";
 import { chooseVoice, seemsDistressed } from "@/lib/voice/rotation";
@@ -81,19 +84,31 @@ export async function POST(request: Request) {
       handoffFrom = switched ? candidates.find((voice) => voice.id === choice.previousId)?.display_name ?? null : null;
     }
   } catch { speaker = null; }
+  // Without the caregiver's rules a reply could say something the family has excluded, so the turn does not proceed.
+  let guidance: Guidance;
+  try { guidance = await promptGuidance(await ensureDatabase(), patientId); }
+  catch {
+    activeTurns.delete(patientId);
+    return Response.json({ message: "I’m having trouble right now. Please try again in a moment." }, { status: 503 });
+  }
   let provider = activeConversationProvider();
   const evaluationId = randomUUID();
   let completedTurn: { heard: string; reply: string } | null = null;
   after(async () => {
     if (!completedTurn) return;
     try {
-      const evaluation = await evaluateReply({ ...completedTurn, context: JSON.stringify({ speaker: speaker ? `AI companion using an AI recreation of ${speaker.name}'s voice, recorded with their permission; approved shared facts: ${JSON.stringify(speaker.persona?.shared_facts ?? [])}` : "AI companion using a stock voice", history: conversation.history }) });
+      const evaluation = await evaluateReply({ ...completedTurn, context: JSON.stringify({ speaker: speaker ? `AI companion using an AI recreation of ${speaker.name}'s voice, recorded with their permission; approved shared facts: ${JSON.stringify(speaker.persona?.shared_facts ?? [])}` : "AI companion using a stock voice", approvedFactsAboutThePerson: guidance.facts, history: conversation.history }) });
       await saveEvaluation(evaluationId, conversation.id, provider, evaluation);
     } catch { console.error("Familiar reply evaluation could not be saved."); }
   });
   const stream = conversationStream({ conversationId: conversation.id, text, startedAt: started, evaluationId, speaker: speaker ? { info: { id: speaker.id, name: speaker.name, relationship: speaker.relationship, label: speakerLabel(speaker.name) }, switched } : null }, request.signal, {
-    reply: (signal, notice) => streamConversation({ text, audio, preferredName, history: conversation.history, speaker, handoffFrom }, signal, (model) => { provider = model.provider; notice(model); }),
-    save: async (heard, reply) => { await saveConversationTurn(conversation.id, heard, reply, speaker?.id ?? null); completedTurn = { heard, reply }; },
+    reply: (signal, notice) => streamConversation({ text, audio, preferredName, history: conversation.history, speaker, handoffFrom, guidance }, signal, (model) => { provider = model.provider; notice(model); }),
+    save: async (heard, reply, remembered) => {
+      await saveConversationTurn(conversation.id, heard, reply, speaker?.id ?? null);
+      completedTurn = { heard, reply };
+      // A suggestion that cannot be queued is dropped; it must not fail the spoken reply.
+      if (remembered.length) await proposeFacts(await ensureDatabase(), patientId, remembered).catch(() => {});
+    },
     release: () => activeTurns.delete(patientId),
   });
   return new Response(stream, { headers: { "Content-Type": "text/event-stream; charset=utf-8", "Cache-Control": "no-store, no-transform", "X-Accel-Buffering": "no" } });

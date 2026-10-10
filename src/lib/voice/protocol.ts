@@ -19,6 +19,8 @@ export type VoiceConfig = {
   microphoneReady?: boolean;
   conversationProvider?: "sonnet" | "gemini";
   evaluatorConfigured?: boolean;
+  // True until the person has acknowledged the one-time explanation of AI voices.
+  onboarding?: boolean;
   speakers?: SpeakerInfo[];
 };
 
@@ -26,6 +28,7 @@ export const STOCK_VOICE_LABEL = "AI stock voice · not a family member’s voic
 export const FIXED_PHRASES = {
   thinking: "One moment.",
   disclosure: "I'm Familiar, an AI companion. This is a stock AI voice, not your family member's voice.",
+  onboarding: "Hello. I'm Familiar, an AI companion. Some voices you hear may sound like your family. They are AI voices, made with their permission. They are not the real person. Your family can see short summaries of our chats, and anything worrying. They do not see every word.",
 } as const;
 
 // Handles SSE even when UTF-8 characters, lines, and events cross network chunks.
@@ -71,6 +74,8 @@ export class ReplyParser {
   private speech = "";
   private count = 0;
   transcript = "";
+  // Facts the model suggests remembering; they go to the caregiver's review queue, never straight into prompts.
+  remembered: string[] = [];
 
   push(chunk: string, final = false): string[] {
     this.pending += chunk;
@@ -84,6 +89,7 @@ export class ReplyParser {
         }
         const label = this.pending.slice(2, end);
         if (label.startsWith("heard:")) this.transcript = label.slice(6).trim().slice(0, 2000);
+        else if (label.startsWith("remember:") && this.remembered.length < 2) this.remembered.push(label.slice(9).trim().slice(0, 200));
         this.pending = this.pending.slice(end + 2);
       } else if (this.pending === "[" && !final) {
         break;

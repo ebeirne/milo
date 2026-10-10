@@ -4,7 +4,7 @@ import { speechTicket } from "./tickets";
 
 export function conversationStream(input: { conversationId: string; text?: string; startedAt: number; evaluationId?: string; speaker?: { info: SpeakerInfo; switched: boolean } | null }, requestSignal: AbortSignal, dependencies: {
   reply: (signal: AbortSignal, notice: (model: { provider: "sonnet" | "gemini"; fallback: boolean }) => void) => AsyncIterable<string>;
-  save: (heard: string, reply: string) => Promise<void>;
+  save: (heard: string, reply: string, remembered: string[]) => Promise<void>;
   release: () => void;
 }): ReadableStream<Uint8Array> {
   const cancellation = new AbortController();
@@ -39,7 +39,7 @@ export function conversationStream(input: { conversationId: string; text?: strin
           sendSentences(parser.push("", true));
           if (!previousText.trim()) throw new Error("Empty reply");
           signal.throwIfAborted();
-          if (heard) await dependencies.save(heard, previousText.trim());
+          if (heard) await dependencies.save(heard, previousText.trim(), parser.remembered);
           emit({ type: "timings", firstPhraseMs: firstPhraseMs ?? Math.round(performance.now() - input.startedAt) });
         } catch {
           if (!signal.aborted) {

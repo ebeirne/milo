@@ -72,12 +72,12 @@ export async function getFiller(phrase: keyof typeof FIXED_PHRASES, voice: Fille
       if (persist) {
         try {
           const bytes = await readFile(filename);
-          if (bytes.length >= 100 && bytes.length <= 256000) return new Uint8Array(bytes);
+          if (bytes.length >= 100 && bytes.length <= 600000) return new Uint8Array(bytes);
         } catch { /* A cache miss is normal. */ }
       }
       const response = await streamSpeech(fillerText(phrase, voice), "", AbortSignal.timeout(30000), providerFetch, voice?.providerId);
       const bytes = new Uint8Array(await response.arrayBuffer());
-      if (bytes.length < 100 || bytes.length > 256000) throw new Error("Filler audio unavailable");
+      if (bytes.length < 100 || bytes.length > 600000) throw new Error("Filler audio unavailable");
       if (persist) {
         try {
           await mkdir(root, { recursive: true });
