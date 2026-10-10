@@ -31,7 +31,6 @@ export async function* streamGemini(input: GeminiInput, signal: AbortSignal, fet
   if (!settings.geminiKey) throw new Error("Conversation provider not configured");
   const parts = input.audio ? [
     { inlineData: input.audio },
-    { text: "Please listen to my words and respond kindly." },
   ] : [{ text: input.text }];
   const response = await fetchProvider(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(settings.geminiModel)}:streamGenerateContent?alt=sse`, {
     method: "POST", signal: AbortSignal.any([signal, AbortSignal.timeout(30000)]),

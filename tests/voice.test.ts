@@ -65,6 +65,7 @@ test("provider input uses direct audio and credentials in headers; thinking text
     assert.equal(options.headers["x-goog-api-key"], "test-key-gemini");
     const body = JSON.parse(options.body!);
     assert.equal(body.contents[0].parts[0].inlineData.mimeType, "audio/webm");
+    assert.equal(body.contents[0].parts.length, 1, "Helper instructions must stay out of the patient's audio turn");
     return new Response(`data: ${JSON.stringify({ candidates: [{ content: { parts: [{ text: "Private thought", thought: true }, { text: "Hello." }] } }] })}\n\n`);
   })) chunks.push(chunk);
   assert.deepEqual(chunks, ["Hello."]);

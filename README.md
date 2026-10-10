@@ -63,6 +63,8 @@ Set environment values in `.env.local`, which is ignored by Git.
 
 Only `DATABASE_URL` is required for setup. Add both provider keys to enable conversations; model and stock-voice values have defaults. Custom or cloned voices are not accepted by the stock-voice integration. The database user needs permission to create the `familiar` schema. For hosted PostgreSQL, use the provider's connection URL and required TLS settings. Migrations run on first database access or explicitly with `npm run db:migrate`.
 
+The ElevenLabs key needs **Text to Speech** (`text_to_speech`) and **Voices Read** (`voices_read`) permissions. Familiar checks stock-voice metadata before generating speech.
+
 Without a database connection, pages still render and setup saving is disabled. `/api/health` reports database readiness and provider-key presence without returning credentials.
 
 The current app is intended for local development: authentication is not yet implemented, and the server scripts bind to loopback. Public deployment needs access controls. Microphone access works on localhost; phones need HTTPS.
