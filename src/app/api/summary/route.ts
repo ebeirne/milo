@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 // The caregiver's overview: summaries, moods, flags, and reminder completion. Never raw transcripts.
 export async function GET(request: Request) {
-  if (!caregiverAuthorized(request)) return Response.json({ message: "Please unlock Familiar first." }, { status: 401 });
+  if (!caregiverAuthorized(request)) return Response.json({ message: "Please unlock Milo first." }, { status: 401 });
   try {
     const household = await getHousehold();
     if (!household.patient) return Response.json({ preferredName: null, summaries: [], flags: [], events: [], pendingSummaries: 0 });

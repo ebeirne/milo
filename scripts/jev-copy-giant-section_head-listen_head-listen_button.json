@@ -1,0 +1,142 @@
+{
+ "giant": {
+  "winner": "Warm Voices",
+  "rows": [
+   {
+    "text": "Gentle Company",
+    "clear": 1.01,
+    "accurate": 0.35
+   },
+   {
+    "text": "Kind Words",
+    "clear": 1.06,
+    "accurate": 0.23
+   },
+   {
+    "text": "Good Company",
+    "clear": 1.07,
+    "accurate": 0.36
+   },
+   {
+    "text": "Warm Voices",
+    "clear": 1.05,
+    "accurate": 0.6
+   },
+   {
+    "text": "Their Voices",
+    "clear": 0.98,
+    "accurate": 0.32
+   },
+   {
+    "text": "Family Voices",
+    "clear": 0.92,
+    "accurate": 0.37
+   },
+   {
+    "text": "Calm Company",
+    "clear": 1,
+    "accurate": 0.17
+   },
+   {
+    "text": "Gentle Voices",
+    "clear": 1.08,
+    "accurate": 0.31
+   },
+   {
+    "text": "Voices They Know",
+    "clear": 1,
+    "accurate": 0.65
+   }
+  ]
+ },
+ "section_head": {
+  "winner": "Meet Milo",
+  "rows": [
+   {
+    "text": "Meet Milo",
+    "clear": 0.66,
+    "accurate": 0.71
+   },
+   {
+    "text": "Our approach",
+    "clear": 0.9,
+    "accurate": 0.41
+   },
+   {
+    "text": "Why Milo",
+    "clear": 0.76,
+    "accurate": 0.43
+   },
+   {
+    "text": "The idea",
+    "clear": 0.73,
+    "accurate": 0.34
+   },
+   {
+    "text": "Built for them",
+    "clear": 1.16,
+    "accurate": 0.48
+   },
+   {
+    "text": "How it feels",
+    "clear": 1.08,
+    "accurate": 0.38
+   }
+  ]
+ },
+ "listen_head": {
+  "winner": "Hear the voice",
+  "rows": [
+   {
+    "text": "Hear Milo",
+    "clear": 1.6,
+    "accurate": 0.68
+   },
+   {
+    "text": "Listen",
+    "clear": 1.69,
+    "accurate": 0.34
+   },
+   {
+    "text": "Hear a sample",
+    "clear": 1.69,
+    "accurate": 0.48
+   },
+   {
+    "text": "How it sounds",
+    "clear": 1.29,
+    "accurate": 0.51
+   },
+   {
+    "text": "Hear the voice",
+    "clear": 1.63,
+    "accurate": 0.63
+   }
+  ]
+ },
+ "listen_button": {
+  "winner": "Hear Milo",
+  "rows": [
+   {
+    "text": "Hear Milo",
+    "clear": 1.82,
+    "accurate": 0.62
+   },
+   {
+    "text": "Play sample",
+    "clear": 1.85,
+    "accurate": 0.29
+   },
+   {
+    "text": "Listen",
+    "clear": 1.66,
+    "accurate": 0.32
+   },
+   {
+    "text": "Play",
+    "clear": 1.65,
+    "accurate": 0.35
+   }
+  ]
+ }
+}

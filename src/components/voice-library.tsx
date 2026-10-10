@@ -4,10 +4,11 @@ import Link from "next/link";
 import { BigButton } from "./big-button";
 import { VoicePreview } from "./voice-preview";
 import { VoicePersona } from "./voice-persona";
+import { Intro, NextLink, Part, Tags, serial } from "./console";
 import { ROTATION_POLICIES, type RotationPolicy } from "@/lib/persona";
 import type { VoiceSummary } from "@/lib/enrollment-contract";
 
-const states: Record<VoiceSummary["cloning_status"], string> = { ready: "Ready to preview", pending: "Creating voice", verification_required: "Owner verification needed", failed: "Setup failed", unknown: "Review in ElevenLabs", deleting: "Deletion pending" };
+const states: Record<VoiceSummary["cloning_status"], string> = { ready: "Ready", pending: "Creating", verification_required: "Needs owner verification", failed: "Setup failed", unknown: "Check ElevenLabs", deleting: "Deleting" };
 
 export function VoiceLibrary() {
   const [voices, setVoices] = useState<VoiceSummary[]>([]);
@@ -82,25 +83,38 @@ export function VoiceLibrary() {
     } catch (error) { setMessage(error instanceof Error ? error.message : "Please try again."); }
     finally { setBusy(""); }
   }
-  return <div className="voice-library">
-    <div className="section-heading"><div><p className="eyebrow">FAMILY VOICES</p><h1>Voices that feel like home.</h1><p className="muted">Every recreation begins with the owner’s recorded permission.</p></div><Link className="big-button" href="/caregiver/voices/new">Record my voice</Link></div>
-    {loading && <p role="status">Loading your voices…</p>}
-    {!loading && !voices.length && <div className="card voice-empty"><h2>Your voice library is waiting.</h2><p>Record your own voice here, or invite a living family member or friend to record theirs.</p></div>}
-    <div className="voice-card-grid">{voices.map((voice) => <article className="card voice-card" key={voice.id}>
-      <h2>{voice.display_name}</h2><p className="muted">{voice.relationship}</p><p className="voice-state">{states[voice.cloning_status]}</p>
-      <p>AI recreation, recorded with the voice owner’s permission.</p><p className="field-note">Consent saved {new Date(voice.consent_recorded_at).toLocaleDateString()}.</p>
-      {voice.cloning_status === "ready" && <VoicePreview id={voice.id} name={voice.display_name} />}
-      {voice.cloning_status === "ready" && <div className="voice-toggle"><p className="voice-state">{voice.active ? "Used in conversations" : "Not used in conversations"}</p><BigButton secondary disabled={Boolean(busy)} onClick={() => void setActive(voice, !voice.active)}>{voice.active ? "Stop using this voice" : "Use in conversations"}</BigButton></div>}
-      <VoicePersona voice={voice} onSaved={(saved) => setVoices((items) => items.map((item) => item.id === saved.id ? saved : item))} />
-      {voice.cloning_status === "verification_required" && <><p>Complete the voice owner’s verification in ElevenLabs before previewing. Familiar will not use an unverified voice.</p><BigButton secondary disabled={Boolean(busy)} onClick={() => void verify(voice)}>Check verification</BigButton></>}
-      {voice.cloning_status === "unknown" && <p>The provider’s result could not be confirmed. Check the matching Familiar request in ElevenLabs before creating another voice.</p>}
-      {confirm === voice.id ? <div className="delete-confirm"><p>Delete {voice.display_name}’s AI voice and consent recording? This removes the provider voice and the local profile.</p><BigButton disabled={Boolean(busy)} onClick={() => void remove(voice)}>{busy === voice.id ? "Deleting…" : "Yes, delete voice"}</BigButton><button className="text-button" onClick={() => setConfirm("")}>Keep voice</button></div> : <button className="text-button" disabled={Boolean(busy) || ["pending", "unknown"].includes(voice.cloning_status)} onClick={() => setConfirm(voice.id)}>Delete voice</button>}
-    </article>)}</div>
-    <section className="card invitation-card" aria-labelledby="invite-title"><h2 id="invite-title">Invite someone to record remotely.</h2><p>They will record their own consent and voice sample. Each invitation expires after 24 hours and can create one voice.</p><form onSubmit={(event) => void invite(event)}><div className="form-grid"><div className="field"><label htmlFor="invite-name">Voice owner’s name</label><input id="invite-name" name="name" required maxLength={100} /></div><div className="field"><label htmlFor="invite-relationship">Relationship</label><input id="invite-relationship" name="relationship" required maxLength={100} /></div></div><BigButton type="submit" disabled={Boolean(busy)}>{busy === "invite" ? "Making invitation…" : "Create recording link"}</BigButton></form>
-      {link && <div className="record-link"><label htmlFor="record-url">Share this recording link</label><input id="record-url" readOnly value={link.url} /><BigButton secondary onClick={() => { void navigator.clipboard.writeText(link.url).then(() => setMessage("Recording link copied.")).catch(() => setMessage("Select the link above and copy it.")); }}>Copy link</BigButton><p>Expires {new Date(link.expiresAt).toLocaleString()}.</p>{link.localOnly && <p>This is a localhost link. For another device, configure an HTTPS public URL and caregiver access code first.</p>}</div>}
-    </section>
-    {voices.filter((voice) => voice.active).length > 1 && <section className="card" aria-labelledby="rotation-title"><h2 id="rotation-title">How voices take turns</h2><div className="field"><label htmlFor="rotation">Rotation</label><select id="rotation" value={policy} onChange={(event) => void changePolicy(event.target.value as RotationPolicy)}>{ROTATION_POLICIES.map((value) => <option key={value} value={value}>{{ single: "One voice only", round_robin_per_topic: "Take turns every 2–4 replies", random_weighted: "Mix voices, favoring less-heard ones" }[value]}</option>)}</select><p className="field-note">Voices never switch mid-sentence, and stay put when the conversation sounds upset.</p></div></section>}
-    <p className="form-note">Voices marked “Used in conversations” speak on the Talk screen, always labeled as AI.</p>
+  const inUse = voices.filter((voice) => voice.active).length;
+  return <>
+    <Intro kicker="Family space" title="Voices" sub="Every voice starts with its owner’s recorded permission." meta={<><span>Step 02 of 05</span><Tags items={[`${voices.length} voices`, `${inUse} in use`]} /></>}>
+      <Link className="big-button" href="/caregiver/voices/new">Record my voice</Link>
+    </Intro>
     {message && <p className="form-message" role="status">{message}</p>}
-  </div>;
+    <Part id="library" title="Library" note="Voices in use speak on Talk, always labeled as AI. Without one, Milo uses its stock voice.">
+      {loading ? <p className="entries-empty" role="status">Loading…</p> : !voices.length ? <p className="entries-empty">No family voices yet.</p> : <ul className="entries">{voices.map((voice, index) => <li className="entry" key={voice.id}>
+        <div className="entry-text">
+          <Tags items={[serial("V", index), voice.cloning_status === "ready" ? { text: states.ready, tone: "on" } : states[voice.cloning_status], ...(voice.cloning_status === "ready" ? [voice.active ? { text: "Used in conversations", tone: "on" as const } : "Not in use"] : [])]} />
+          <h3>{voice.display_name}</h3>
+          <p className="small">{voice.relationship} · consent saved {new Date(voice.consent_recorded_at).toLocaleDateString()}</p>
+          {voice.cloning_status === "ready" && <VoicePreview id={voice.id} name={voice.display_name} />}
+          {voice.cloning_status === "ready" && <div><BigButton secondary disabled={Boolean(busy)} onClick={() => void setActive(voice, !voice.active)}>{voice.active ? "Stop using this voice" : "Use in conversations"}</BigButton></div>}
+          <VoicePersona voice={voice} onSaved={(saved) => setVoices((items) => items.map((item) => item.id === saved.id ? saved : item))} />
+          {voice.cloning_status === "verification_required" && <><p className="small">Finish the owner’s verification in ElevenLabs first. Milo will not use an unverified voice.</p><div><BigButton secondary disabled={Boolean(busy)} onClick={() => void verify(voice)}>Check verification</BigButton></div></>}
+          {voice.cloning_status === "unknown" && <p className="small">The result could not be confirmed. Check the matching Milo request in ElevenLabs before creating another voice.</p>}
+          {confirm === voice.id && <div className="delete-confirm"><p>Delete {voice.display_name}’s AI voice and consent recording?</p><BigButton disabled={Boolean(busy)} onClick={() => void remove(voice)}>{busy === voice.id ? "Deleting…" : "Yes, delete voice"}</BigButton><button className="text-button" onClick={() => setConfirm("")}>Keep voice</button></div>}
+        </div>
+        <div className="entry-actions">{confirm !== voice.id && <button className="text-button" disabled={Boolean(busy) || ["pending", "unknown"].includes(voice.cloning_status)} onClick={() => setConfirm(voice.id)}>Delete voice</button>}</div>
+      </li>)}</ul>}
+    </Part>
+    <Part id="invite" title="Invite someone" note="They record their own consent and sample. Each link lasts 24 hours and makes one voice.">
+      <form onSubmit={(event) => void invite(event)}>
+        <div className="form-grid"><div className="field"><label htmlFor="invite-name">Voice owner’s name</label><input id="invite-name" name="name" required maxLength={100} /></div><div className="field"><label htmlFor="invite-relationship">Relationship</label><input id="invite-relationship" name="relationship" required maxLength={100} /></div></div>
+        <div className="form-footer"><BigButton type="submit" secondary disabled={Boolean(busy)}>{busy === "invite" ? "Making link…" : "Create recording link"}</BigButton></div>
+      </form>
+      {link && <div className="record-link"><label htmlFor="record-url" className="field-note">Share this link</label><input id="record-url" readOnly value={link.url} /><BigButton secondary onClick={() => { void navigator.clipboard.writeText(link.url).then(() => setMessage("Recording link copied.")).catch(() => setMessage("Select the link above and copy it.")); }}>Copy link</BigButton><p className="field-note">Expires {new Date(link.expiresAt).toLocaleString()}.{link.localOnly && " This is a localhost link. For another device, set an HTTPS public URL and access code first."}</p></div>}
+    </Part>
+    {inUse > 1 && <Part id="rotation" title="Taking turns" note="Voices never switch mid-sentence, and stay put when a conversation sounds upset.">
+      <div className="field"><label htmlFor="rotation">When several voices are in use</label><select id="rotation" value={policy} onChange={(event) => void changePolicy(event.target.value as RotationPolicy)}>{ROTATION_POLICIES.map((value) => <option key={value} value={value}>{{ single: "One voice only", round_robin_per_topic: "Take turns every 2–4 replies", random_weighted: "Mix voices, favoring less-heard ones" }[value]}</option>)}</select></div>
+    </Part>}
+    <NextLink after="02" />
+  </>;
 }

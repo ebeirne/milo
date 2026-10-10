@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, type FormEvent } from "react";
 import { BigButton } from "./big-button";
+import { Intro, NextLink, Part, Tags, serial } from "./console";
 import { CHECKIN_STYLES, DAY_NAMES, type ScheduleItem, type ScheduleKind } from "@/lib/schedule";
 
 type Voice = { id: string; name: string };
@@ -48,31 +49,39 @@ export function SchedulePanel() {
     } catch (error) { setMessage(error instanceof Error ? error.message : "Please try again."); }
     finally { setBusy(false); }
   }
-  const fields = (kind: ScheduleKind) => <>
+  const when = (kind: ScheduleKind) => <>
     <div className="form-grid">
       <div className="field"><label htmlFor={`${kind}-time`}>Time</label><input id={`${kind}-time`} name="time" type="time" required /></div>
-      <div className="field"><label htmlFor={`${kind}-voice`}>Spoken by</label><select id={`${kind}-voice`} name="voice" defaultValue=""><option value="">Familiar’s stock voice</option>{voices.map((voice) => <option key={voice.id} value={voice.id}>AI voice of {voice.name}</option>)}</select></div>
+      <div className="field"><label htmlFor={`${kind}-voice`}>Spoken by</label><select id={`${kind}-voice`} name="voice" defaultValue=""><option value="">Milo’s stock voice</option>{voices.map((voice) => <option key={voice.id} value={voice.id}>AI voice of {voice.name}</option>)}</select></div>
     </div>
-    <fieldset className="schedule-days"><legend>Days</legend>{DAY_NAMES.map((name, day) => <label className="checkbox-row" key={name}><input type="checkbox" name="days" value={day} defaultChecked />{name}</label>)}</fieldset>
+    <fieldset className="days"><legend>Days</legend>{DAY_NAMES.map((name, day) => <label className="day" key={name}><input type="checkbox" name="days" value={day} defaultChecked /><span>{name}</span></label>)}</fieldset>
   </>;
-  const list = (kind: ScheduleKind) => <ul className="guidance-list">{items.filter((item) => item.kind === kind).map((item) => <li key={item.id}>
-    <span><strong>{item.time}</strong> · {describeDays(item.days)} · {item.voiceName ? `AI voice of ${item.voiceName}` : "stock voice"}<br />{kind === "reminder" ? item.text : CHECKIN_STYLES[item.text as keyof typeof CHECKIN_STYLES] ?? item.text}</span>
-    <button className="text-button" disabled={busy} onClick={() => void remove(item)} aria-label={`Remove the ${item.time} ${kind === "reminder" ? "reminder" : "check-in"}`}>Remove</button>
-  </li>)}</ul>;
-  return <div className="voice-library">
-    <div className="section-heading"><div><p className="eyebrow">REMINDERS &amp; CHECK-INS</p><h1>A gentle nudge, in a familiar voice.</h1><p className="muted">These play on the Talk screen while it is open on their device. They cannot play when the app is closed.</p></div></div>
-    {loading && <p role="status">Loading reminders…</p>}
+  const list = (kind: ScheduleKind) => {
+    const rows = items.filter((item) => item.kind === kind);
+    if (!rows.length) return <p className="entries-empty">None yet.</p>;
+    return <ul className="entries">{rows.map((item, index) => <li className="entry" key={item.id}>
+      <div className="entry-text"><Tags items={[serial(kind === "reminder" ? "R" : "C", index), item.time, describeDays(item.days), item.voiceName ? `AI voice of ${item.voiceName}` : "Stock voice"]} /><p>{kind === "reminder" ? item.text : CHECKIN_STYLES[item.text as keyof typeof CHECKIN_STYLES] ?? item.text}</p></div>
+      <div className="entry-actions"><button className="icon-button" disabled={busy} onClick={() => void remove(item)} aria-label={`Remove the ${item.time} ${kind === "reminder" ? "reminder" : "check-in"}`}>−</button></div>
+    </li>)}</ul>;
+  };
+  const reminders = items.filter((item) => item.kind === "reminder").length;
+  return <>
+    <Intro kicker="Family space" title="Reminders" sub="They play while Talk is open on their device." meta={<><span>Step 04 of 05</span><Tags items={[`${reminders} reminders`, `${items.length - reminders} check-ins`]} /></>} />
+    {loading && <p className="entries-empty" role="status">Loading…</p>}
     {message && <p className="form-message form-message-error" role="alert">{message}</p>}
-    <div className="voice-card-grid">
-      <section className="card guidance-card" aria-labelledby="reminders-title"><h2 id="reminders-title">Reminders</h2><p className="field-note">Spoken exactly as you write it. If it isn’t answered within 20 minutes, you’ll see a note on the overview.</p>
-        {list("reminder")}
-        <form onSubmit={(event) => void add(event, "reminder")}><div className="field"><label htmlFor="reminder-text">What to say</label><input id="reminder-text" name="text" required maxLength={200} placeholder="Time for your morning pills, the ones on the kitchen table." /></div>{fields("reminder")}<BigButton type="submit" secondary disabled={busy}>Add reminder</BigButton></form>
-      </section>
-      <section className="card guidance-card" aria-labelledby="checkins-title"><h2 id="checkins-title">Check-ins</h2><p className="field-note">A friendly hello that invites them to talk.</p>
-        {list("checkin")}
-        <form onSubmit={(event) => void add(event, "checkin")}><div className="field"><label htmlFor="checkin-style">What to say</label><select id="checkin-style" name="style" defaultValue="gentle">{Object.entries(CHECKIN_STYLES).map(([style, text]) => <option key={style} value={style}>{text}</option>)}</select></div>{fields("checkin")}<BigButton type="submit" secondary disabled={busy}>Add check-in</BigButton></form>
-      </section>
-    </div>
-    <p className="form-note">Every scheduled message begins by saying it is Familiar, or whose AI voice it is.</p>
-  </div>;
+    <Part id="reminders" title="Reminders" note="Spoken exactly as written. One left unanswered for twenty minutes shows up under Their day.">
+      {list("reminder")}
+      <details className="more"><summary>Add a reminder</summary>
+        <form onSubmit={(event) => void add(event, "reminder")}><div className="field"><label htmlFor="reminder-text">What to say</label><input id="reminder-text" name="text" required maxLength={200} placeholder="Time for your morning pills, the ones on the kitchen table." /></div>{when("reminder")}<div className="form-footer"><BigButton type="submit" disabled={busy}>Add reminder</BigButton></div></form>
+      </details>
+    </Part>
+    <Part id="checkins" title="Check-ins" note="A friendly hello that invites a chat.">
+      {list("checkin")}
+      <details className="more"><summary>Add a check-in</summary>
+        <form onSubmit={(event) => void add(event, "checkin")}><div className="field"><label htmlFor="checkin-style">What to say</label><select id="checkin-style" name="style" defaultValue="gentle">{Object.entries(CHECKIN_STYLES).map(([style, text]) => <option key={style} value={style}>{text}</option>)}</select></div>{when("checkin")}<div className="form-footer"><BigButton type="submit" disabled={busy}>Add check-in</BigButton></div></form>
+      </details>
+    </Part>
+    <p className="form-note">Every scheduled message starts by saying it is Milo, or whose AI voice it is.</p>
+    <NextLink after="04" />
+  </>;
 }

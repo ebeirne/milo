@@ -19,7 +19,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       if (!link || !link.used_at || link.enrollment_id !== id) return Response.json({ message: "This preview link is unavailable." }, { status: 410 });
       patientId = link.patient_id;
     } else {
-      if (!caregiverAuthorized(request)) return Response.json({ message: "Please unlock Familiar first." }, { status: 401 });
+      if (!caregiverAuthorized(request)) return Response.json({ message: "Please unlock Milo first." }, { status: 401 });
       const household = await getHousehold();
       if (!household.patient) return Response.json({ message: "Setup required." }, { status: 409 });
       patientId = household.patient.id;

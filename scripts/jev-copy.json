@@ -1,0 +1,304 @@
+{
+ "hero": {
+  "winner": "A familiar voice, whenever they need one.",
+  "rows": [
+   {
+    "text": "Speak with someone familiar.",
+    "clear": 1.8,
+    "accurate": 0.59
+   },
+   {
+    "text": "A familiar voice, whenever they need one.",
+    "clear": 1.84,
+    "accurate": 0.64
+   },
+   {
+    "text": "Company, in a voice they know.",
+    "clear": 1.55,
+    "accurate": 0.61
+   },
+   {
+    "text": "A voice that feels like family.",
+    "clear": 1.69,
+    "accurate": 0.45
+   }
+  ]
+ },
+ "overview": {
+  "winner": "Milo keeps people with mild memory loss company, in voices from their own family.",
+  "rows": [
+   {
+    "text": "Milo is a voice companion for people living with mild memory loss. It talks in the voices of the family who love them, always with their permission.",
+    "clear": 1.81,
+    "accurate": 0.71
+   },
+   {
+    "text": "Milo is a voice companion for people with mild memory loss. It can speak in family voices, always with permission.",
+    "clear": 1.9,
+    "accurate": 0.89
+   },
+   {
+    "text": "A voice companion for people with mild memory loss, speaking in their family's voices, with permission.",
+    "clear": 1.83,
+    "accurate": 0.88
+   },
+   {
+    "text": "Milo keeps people with mild memory loss company, in voices from their own family.",
+    "clear": 1.9,
+    "accurate": 0.83
+   }
+  ]
+ },
+ "talk": {
+  "winner": "One tap to talk. Short, warm replies.",
+  "rows": [
+   {
+    "text": "One tap to talk, and a kind reply",
+    "clear": 1.73,
+    "accurate": 0.76
+   },
+   {
+    "text": "Tap once. Talk. Hear a kind reply.",
+    "clear": 1.7,
+    "accurate": 0.78
+   },
+   {
+    "text": "One tap to talk. Short, warm replies.",
+    "clear": 1.84,
+    "accurate": 0.8
+   }
+  ]
+ },
+ "voices": {
+  "winner": "Their family's voices, with consent",
+  "rows": [
+   {
+    "text": "Family voices, recorded with consent",
+    "clear": 1.67,
+    "accurate": 0.9
+   },
+   {
+    "text": "Family voices, with their permission",
+    "clear": 1.64,
+    "accurate": 0.88
+   },
+   {
+    "text": "Their family's voices, with consent",
+    "clear": 1.74,
+    "accurate": 0.83
+   }
+  ]
+ },
+ "day": {
+  "winner": "Family sees how the day went, not every word",
+  "rows": [
+   {
+    "text": "Summaries for family, never every word",
+    "clear": 1.83,
+    "accurate": 0.93
+   },
+   {
+    "text": "Family sees how the day went, not every word",
+    "clear": 1.84,
+    "accurate": 0.88
+   },
+   {
+    "text": "How their day went, without every word",
+    "clear": 1.73,
+    "accurate": 0.85
+   }
+  ]
+ },
+ "sample_note": {
+  "winner": "The stock voice. Family voices are made only with consent.",
+  "rows": [
+   {
+    "text": "This is Milo's stock voice. Family voices are recorded with consent.",
+    "clear": 1.51,
+    "accurate": 0.84
+   },
+   {
+    "text": "Milo's stock voice. Family voices need their owner's consent.",
+    "clear": 1.61,
+    "accurate": 0.92
+   },
+   {
+    "text": "The stock voice. Family voices are made only with consent.",
+    "clear": 1.68,
+    "accurate": 0.89
+   }
+  ]
+ },
+ "sample": {
+  "winner": "Good morning, Walter. It's Milo. I'm an AI, here to keep you company. Shall we talk about the garden?",
+  "rows": [
+   {
+    "text": "Good morning, Walter. It's Milo, your AI companion. I hear the roses are out. Would you like to tell me about the garden?",
+    "clear": 1.83,
+    "accurate": 0.75
+   },
+   {
+    "text": "Hello, Walter. I'm Milo, an AI voice, here to keep you company. How are you feeling this morning?",
+    "clear": 1.85,
+    "accurate": 0.89
+   },
+   {
+    "text": "Good morning, Walter. It's Milo. I'm an AI, here to keep you company. Shall we talk about the garden?",
+    "clear": 1.87,
+    "accurate": 0.89
+   }
+  ]
+ },
+ "meet": {
+  "winner": "Milo listens and answers in short, warm sentences.",
+  "rows": [
+   {
+    "text": "Milo listens, waits, and answers in short, warm sentences, in a voice they know.",
+    "clear": 1.83,
+    "accurate": 0.75
+   },
+   {
+    "text": "Milo listens and answers in short, warm sentences.",
+    "clear": 1.88,
+    "accurate": 0.94
+   },
+   {
+    "text": "It listens, waits, and answers simply.",
+    "clear": 1.7,
+    "accurate": 0.8
+   }
+  ]
+ },
+ "rhythm": {
+  "winner": "Set a reminder once. Milo says it at the right time, in the voice you choose, while Talk is open.",
+  "rows": [
+   {
+    "text": "Family sets reminders and friendly check-ins for set times, spoken in the stock voice or a family voice. They play while the Talk screen is open.",
+    "clear": 1.6,
+    "accurate": 0.94
+   },
+   {
+    "text": "Reminders and friendly check-ins, spoken at set times while Talk is open.",
+    "clear": 1.83,
+    "accurate": 0.93
+   },
+   {
+    "text": "Set a reminder once. Milo says it at the right time, in the voice you choose, while Talk is open.",
+    "clear": 1.88,
+    "accurate": 0.74
+   }
+  ]
+ },
+ "rhythm_note": {
+  "winner": "Reminders play only while Talk is open.",
+  "rows": [
+   {
+    "text": "Nothing plays when the app is closed. Browsers need one tap on the screen before sound can start.",
+    "clear": 0.98,
+    "accurate": 0.27
+   },
+   {
+    "text": "Nothing plays when the app is closed.",
+    "clear": 1.57,
+    "accurate": 0.79
+   },
+   {
+    "text": "Reminders play only while Talk is open.",
+    "clear": 1.78,
+    "accurate": 0.96
+   }
+  ]
+ },
+ "safety": {
+  "winner": "Milo listens for a fall, pain or confusion, and asks if they need help.",
+  "rows": [
+   {
+    "text": "Every message is checked for signs of a fall, pain, confusion or low mood. If something sounds wrong, Milo asks: “Do you need help right now?”",
+    "clear": 1.85,
+    "accurate": 0.65
+   },
+   {
+    "text": "If something sounds wrong, Milo asks: “Do you need help right now?”",
+    "clear": 1.86,
+    "accurate": 0.78
+   },
+   {
+    "text": "Milo listens for a fall, pain or confusion, and asks if they need help.",
+    "clear": 1.97,
+    "accurate": 0.94
+   }
+  ]
+ },
+ "safety_note": {
+  "winner": "It never calls anyone by itself.",
+  "rows": [
+   {
+    "text": "Milo never dials by itself. The call is always their own tap.",
+    "clear": 1.93,
+    "accurate": 0.89
+   },
+   {
+    "text": "Milo never dials. The call is always their tap.",
+    "clear": 1.92,
+    "accurate": 0.88
+   },
+   {
+    "text": "It never calls anyone by itself.",
+    "clear": 1.94,
+    "accurate": 0.91
+   }
+  ]
+ },
+ "cta_sub": {
+  "winner": "Five short steps.",
+  "rows": [
+   {
+    "text": "Five short steps, at your own pace.",
+    "clear": 1.93,
+    "accurate": 0.74
+   },
+   {
+    "text": "Five short steps.",
+    "clear": 1.95,
+    "accurate": 0.77
+   },
+   {
+    "text": "Five steps, at your own pace.",
+    "clear": 1.93,
+    "accurate": 0.78
+   }
+  ]
+ },
+ "names": [
+  {
+   "key": "talk_voices_day",
+   "text": "T¹ Talk, V¹ Voices, D¹ Day",
+   "plain": 1.39,
+   "style": 1.47
+  },
+  {
+   "key": "speak_kin_care",
+   "text": "S¹ Speak, K¹ Kin, C¹ Care",
+   "plain": 1.25,
+   "style": 1.15
+  },
+  {
+   "key": "milo_prefix",
+   "text": "Milo Talk, Milo Voices, Milo Day",
+   "plain": 1.43,
+   "style": 0.34
+  },
+  {
+   "key": "current",
+   "text": "M¹ Talk, M² Voices, M³ Family",
+   "plain": 1.46,
+   "style": 1.06
+  },
+  {
+   "key": "talk_voices_family",
+   "text": "T¹ Talk, V¹ Voices, F¹ Family",
+   "plain": 1.39,
+   "style": 1.33
+  }
+ ]
+}

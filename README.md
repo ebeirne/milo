@@ -1,14 +1,18 @@
-# Familiar
+# Milo
 
-A voice companion for people with mild dementia who spend time alone. Familiar is designed to offer warm, simple conversations in AI recreations of family and friends' voices, recorded with their permission and clearly labeled as AI.
+**Website: [ebeirne.github.io/milo](https://ebeirne.github.io/milo/)**
+
+Milo (said *MEE-lo*, from the Greek μιλώ, "I speak") is a voice companion for people with mild dementia who spend time alone. Milo is designed to offer warm, simple conversations in AI recreations of family and friends' voices, recorded with their permission and clearly labeled as AI.
 
 The app runs in a browser on phones, tablets, and computers, with a PWA manifest for a home-screen experience.
+
+Milo is built on [gurtejpalg/Familiar](https://github.com/gurtejpalg/Familiar), renamed and redesigned.
 
 ## How it works
 
 The intended experience brings together:
 
-- **Familiar conversations:** tap to talk and hear a short, gentle reply in a consenting loved one's recreated voice.
+- **Milo conversations:** tap to talk and hear a short, gentle reply in a consenting loved one's recreated voice.
 - **Personal touches:** voice profiles describe speaking styles, relationships, and shared facts the companion may reference.
 - **Family controls:** caregivers choose topics to encourage or avoid and approve lasting memories.
 - **Daily connection:** scheduled check-ins and reminders support everyday routines.
@@ -16,7 +20,26 @@ The intended experience brings together:
 
 Voice owners must give recorded consent before cloning. The companion always identifies voices as AI recreations, never impersonates the real person, and never invents shared memories. It is not a source of medical advice. The planned emergency flow surfaces call options and alerts caregivers; it never automatically dials.
 
-Familiar is a hackathon demo, not a medical device. Patient home, caregiver setup, stock-voice conversations, and consented family voice recording, cloning, previews, and deletion are available when the database and providers are configured. Caregivers can give each ready family voice a persona, turn it on for conversations, and choose how several voices take turns; the Talk screen always shows which AI voice is speaking. Caregivers also set topic rules and approved memories, schedule reminders and check-ins, and see summaries, moods, and safety flags. Reminders only play while the Talk screen is open; background push notifications, wake words, and smart speakers are not built.
+Milo is a hackathon demo, not a medical device. Patient home, caregiver setup, stock-voice conversations, and consented family voice recording, cloning, previews, and deletion are available when the database and providers are configured. Caregivers can give each ready family voice a persona, turn it on for conversations, and choose how several voices take turns; the Talk screen always shows which AI voice is speaking. Caregivers also set topic rules and approved memories, schedule reminders and check-ins, and see summaries, moods, and safety flags. Reminders only play while the Talk screen is open; background push notifications, wake words, and smart speakers are not built.
+
+## Website
+
+The website is the page at `/`. It has no menu and is read top to bottom. Its look follows [augen.pro](https://augen.pro): few words, large light type, light and dark sections in turn, and one blue accent. Its motion is calm:
+
+- the portraits sharpen into place;
+- the page colour eases between sections;
+- the giant type drifts;
+- the closing band opens from a thin line.
+
+The static copy at the link above is built from the same component (`src/components/landing.tsx`) by `npm run build:site` and published by `.github/workflows/pages.yml` on every push to `main`. Only the website is static. Talk and the family console need the server and database, so the public copy's last link leads here instead of into setup.
+
+How the website's content was made:
+
+- **Portraits.** The grandfather and granddaughter are AI-generated, not real people (`scripts/make-heads.ts`). `scripts/prepare-heads.mjs` splits them and turns the fog into transparency.
+- **Voice sample.** The sample is a stock ElevenLabs voice standing in for a family voice (`scripts/make-sample.ts`). Real family voices are only ever made from their owner's recorded consent.
+- **Copy.** The words were chosen by Jev, TypeSafe's judgment model, from short candidates checked against Milo's real features (`scripts/jev-copy.ts`). What to trim and animate came from Jev's audit (`scripts/jev-site.ts`). The records are in `scripts/jev-*.json`.
+
+The family console at `/caregiver` follows augen's inner pages: a side index of the five setup steps (about them, voices, topics and memory, reminders, their day), then ruled lists with small tags.
 
 ## Tech stack
 
@@ -49,7 +72,7 @@ npm.cmd run dev
 
 On other shells, use `npm` instead of `npm.cmd` and `cp .env.example .env.local` to copy the environment template. Skip `docker compose up -d` if using an existing database.
 
-Open [http://127.0.0.1:3000](http://127.0.0.1:3000) for the companion home or [http://127.0.0.1:3000/caregiver](http://127.0.0.1:3000/caregiver) for family setup.
+Open [http://127.0.0.1:3000](http://127.0.0.1:3000) for the website, [/caregiver](http://127.0.0.1:3000/caregiver) for the family console, or [/talk](http://127.0.0.1:3000/talk) for the screen the person uses. Added to a home screen, the app opens straight into Talk.
 
 ### Configuration
 
@@ -75,7 +98,7 @@ Set environment values in `.env.local`, which is ignored by Git.
 
 Only `DATABASE_URL` is required for setup. Add Anthropic, Gemini, and ElevenLabs keys for the full conversation pipeline. If the Anthropic key is absent, Gemini keeps conversations working. A missing TypeSafe key disables evaluation without disabling conversation. Model and stock-voice values have defaults. Custom or cloned voices are not accepted by the stock-voice integration. The database user needs permission to create the `familiar` schema. For hosted PostgreSQL, use the provider's connection URL and required TLS settings. Migrations run on first database access or explicitly with `npm run db:migrate`.
 
-The ElevenLabs key needs **Text to Speech** (`text_to_speech`). The built-in George stock voice works with that permission alone. To configure another stock voice ID, also enable **Voices → Read** (`voices_read`); Familiar verifies that other IDs are premade voices before generating speech.
+The ElevenLabs key needs **Text to Speech** (`text_to_speech`). The built-in George stock voice works with that permission alone. To configure another stock voice ID, also enable **Voices → Read** (`voices_read`); Milo verifies that other IDs are premade voices before generating speech.
 
 Family voice creation and deletion also need **Voices → Write** (`voices_write`) and a plan with Instant Voice Cloning and available voice slots. If ElevenLabs requires voice-owner verification, complete that in ElevenLabs and use **Check verification** in the library; that status check needs Voices → Read. The app will not preview a voice while required verification is pending.
 
@@ -103,7 +126,7 @@ Voice creation and deletion are tested with provider stubs. A recognizable clone
 
 Complete family setup, then return to the companion home. Tap **Talk**, allow microphone access, and tap **Finish speaking** to send the recording. **Stop** immediately cuts playback and cancels the turn; stopping while recording discards it. A typed-message option is available when a microphone cannot be used.
 
-Gemini transcribes recorded audio, then Sonnet streams a short, conversational reply. Typed messages go straight to Sonnet. Gemini is available as a fallback when Sonnet is missing or fails before emitting text; a partially spoken reply is never combined with another model's response. Each completed sentence is synthesized through ElevenLabs and queued with Web Audio in order. Fixed, non-personal filler and disclosure audio are cached per voice and model under the ignored `data/filler/` directory. Dialogue audio is not cached or saved by Familiar; provider retention follows the provider account's settings. Captions remain available when speech fails.
+Gemini transcribes recorded audio, then Sonnet streams a short, conversational reply. Typed messages go straight to Sonnet. Gemini is available as a fallback when Sonnet is missing or fails before emitting text; a partially spoken reply is never combined with another model's response. Each completed sentence is synthesized through ElevenLabs and queued with Web Audio in order. Fixed, non-personal filler and disclosure audio are cached per voice and model under the ignored `data/filler/` directory. Dialogue audio is not cached or saved by Milo; provider retention follows the provider account's settings. Captions remain available when speech fails.
 
 Jev reviews completed replies for invented memories, family impersonation, medical advice, and confusing wording. Reviews run after the response finishes and do not delay or change speech. Only structured judgments are stored; no second copy of the transcript is saved with an evaluation. Each review is tied to its specific reply, so delayed results cannot be mistaken for a newer turn. Confidence is a measure of the model's judgment, not verified correctness. Reviews do not trigger emergency actions.
 
@@ -131,7 +154,7 @@ Every message is screened two ways: a reviewable phrase list in `src/lib/safety.
 | Possible emergency | a fall, pain, feeling faint, lost, or unsafe | The companion asks "Do you need help right now?" and the screen shows **Yes, I need help** / **I'm okay** |
 | Emergency | confirmed need, trouble breathing, chest pain, self-harm language | A large **Call 911** button (`tel:911`); self-harm language also shows **Call 988** |
 
-Familiar never dials. The call buttons appear from the phrase screen even when the model is unavailable. Caregiver notification is an interface in `src/lib/notify.ts` that currently delivers through the family overview and a server log line; email and SMS are not wired. Flags store a category, not the person's words. Location is not collected.
+Milo never dials. The call buttons appear from the phrase screen even when the model is unavailable. Caregiver notification is an interface in `src/lib/notify.ts` that currently delivers through the family overview and a server log line; email and SMS are not wired. Flags store a category, not the person's words. Location is not collected.
 
 ### Their day
 
@@ -148,6 +171,7 @@ Familiar never dials. The call buttons appear from the phrase screen even when t
 | `npm run dev` | Start the development server |
 | `npm run build` | Create a production build |
 | `npm start` | Serve the production build |
+| `npm run build:site` | Build the static website for GitHub Pages into `site/out` |
 | `npm run db:migrate` | Apply PostgreSQL migrations |
 | `npm run lint` | Run ESLint |
 | `npm run typecheck` | Check TypeScript types |
@@ -166,11 +190,12 @@ Unit tests use isolated PostgreSQL through PGlite and test provider protocols wi
 | Path | Purpose |
 | --- | --- |
 | `src/app/` | Pages, server actions, health endpoint, and PWA manifest |
+| `site/` | The static GitHub Pages build of the website |
 | `src/components/` | Shared interface components |
 | `src/lib/db/` | PostgreSQL connection pool, migrations, and repository |
 | `tests/` | Database, validation, browser, and accessibility tests |
 | `public/` | App icons and static assets |
-| `scripts/` | Migration and icon-generation utilities |
+| `scripts/` | Migration, icon, website asset, and Jev copy scripts |
 | `compose.yaml` | Local PostgreSQL service with persistent storage |
 
 Regenerate home-screen icons with `node scripts/generate-icons.mjs` after editing `public/icon.svg`.

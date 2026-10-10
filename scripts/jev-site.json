@@ -1,0 +1,102 @@
+{
+ "section_hero": {
+  "verdict": "keep",
+  "average": {
+   "keep": 0.5666666666666667,
+   "trim": 0.41000000000000003,
+   "merge": 0.01,
+   "cut": 0.013333333333333334
+  }
+ },
+ "section_overview": {
+  "verdict": "keep",
+  "average": {
+   "keep": 0.7366666666666667,
+   "trim": 0.21333333333333332,
+   "merge": 0.03,
+   "cut": 0.02
+  }
+ },
+ "section_rows": {
+  "verdict": "keep",
+  "average": {
+   "keep": 0.8633333333333333,
+   "trim": 0.10999999999999999,
+   "merge": 0.016666666666666666,
+   "cut": 0.01
+  }
+ },
+ "section_giant": {
+  "verdict": "trim",
+  "average": {
+   "keep": 0.33,
+   "trim": 0.44333333333333336,
+   "merge": 0.04666666666666666,
+   "cut": 0.18
+  }
+ },
+ "section_sample": {
+  "verdict": "keep",
+  "average": {
+   "keep": 0.69,
+   "trim": 0.2733333333333334,
+   "merge": 0.01,
+   "cut": 0.023333333333333334
+  }
+ },
+ "section_facts": {
+  "verdict": "trim",
+  "average": {
+   "keep": 0.24333333333333332,
+   "trim": 0.5366666666666666,
+   "merge": 0.08,
+   "cut": 0.14
+  }
+ },
+ "section_rhythm": {
+  "verdict": "keep",
+  "average": {
+   "keep": 0.6633333333333333,
+   "trim": 0.26333333333333336,
+   "merge": 0.043333333333333335,
+   "cut": 0.03
+  }
+ },
+ "section_safety": {
+  "verdict": "keep",
+  "average": {
+   "keep": 0.8033333333333332,
+   "trim": 0.13,
+   "merge": 0.05666666666666667,
+   "cut": 0.01
+  }
+ },
+ "section_cta": {
+  "verdict": "trim",
+  "average": {
+   "keep": 0.33666666666666667,
+   "trim": 0.62,
+   "merge": 0.01,
+   "cut": 0.03333333333333333
+  }
+ },
+ "section_footer": {
+  "verdict": "keep",
+  "average": {
+   "keep": 0.4766666666666667,
+   "trim": 0.42666666666666664,
+   "merge": 0.026666666666666665,
+   "cut": 0.07
+  }
+ },
+ "motion_hero_load": 0.6533333333333333,
+ "motion_overview_fill": 0.4566666666666667,
+ "motion_rows_mask": 0.39999999999999997,
+ "motion_sample_wave": 0.44,
+ "motion_sample_autoplay": 0.16333333333333333,
+ "motion_band_grow": 0.53,
+ "motion_colour_ease": 0.5566666666666668,
+ "motion_intro_screen": 0.22333333333333336,
+ "motion_custom_cursor": 0.12666666666666668,
+ "clutter": 1.49
+}

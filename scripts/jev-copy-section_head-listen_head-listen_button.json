@@ -1,0 +1,92 @@
+{
+ "section_head": {
+  "winner": "Built for them",
+  "rows": [
+   {
+    "text": "Meet Milo",
+    "clear": 0.72,
+    "accurate": 0.22
+   },
+   {
+    "text": "Our approach",
+    "clear": 0.96,
+    "accurate": 0.74
+   },
+   {
+    "text": "Why Milo",
+    "clear": 0.89,
+    "accurate": 0.58
+   },
+   {
+    "text": "The idea",
+    "clear": 0.74,
+    "accurate": 0.67
+   },
+   {
+    "text": "Built for them",
+    "clear": 1.1,
+    "accurate": 0.66
+   },
+   {
+    "text": "How it feels",
+    "clear": 0.94,
+    "accurate": 0.33
+   }
+  ]
+ },
+ "listen_head": {
+  "winner": "Hear a sample",
+  "rows": [
+   {
+    "text": "Hear Milo",
+    "clear": 1.72,
+    "accurate": 0.45
+   },
+   {
+    "text": "Listen",
+    "clear": 1.68,
+    "accurate": 0.52
+   },
+   {
+    "text": "Hear a sample",
+    "clear": 1.76,
+    "accurate": 0.51
+   },
+   {
+    "text": "How it sounds",
+    "clear": 1.22,
+    "accurate": 0.51
+   },
+   {
+    "text": "Hear the voice",
+    "clear": 1.63,
+    "accurate": 0.49
+   }
+  ]
+ },
+ "listen_button": {
+  "winner": "Play sample",
+  "rows": [
+   {
+    "text": "Hear Milo",
+    "clear": 1.81,
+    "accurate": 0.4
+   },
+   {
+    "text": "Play sample",
+    "clear": 1.83,
+    "accurate": 0.63
+   },
+   {
+    "text": "Listen",
+    "clear": 1.65,
+    "accurate": 0.46
+   },
+   {
+    "text": "Play",
+    "clear": 1.66,
+    "accurate": 0.58
+   }
+  ]
+ }
+}

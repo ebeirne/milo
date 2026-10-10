@@ -27,5 +27,6 @@ export async function saveSetup(_previousState: SetupState, formData: FormData):
   }
   revalidatePath("/");
   revalidatePath("/caregiver");
-  return { status: "success", message: "Your details are saved. You can return to the companion home." };
+  revalidatePath("/talk");
+  return { status: "success", message: "Your details are saved." };
 }

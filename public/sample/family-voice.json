@@ -1,0 +1,88 @@
+{
+ "audio": "/sample/family-voice.mp3",
+ "text": "Good morning, Grandpa. You're hearing an AI version of Nia's voice. How are the roses doing?",
+ "voice": "ElevenLabs stock voice (Sarah) standing in for a family voice",
+ "duration": 5.712,
+ "words": [
+  {
+   "text": "Good",
+   "start": 0,
+   "end": 0.221
+  },
+  {
+   "text": "morning,",
+   "start": 0.267,
+   "end": 0.592
+  },
+  {
+   "text": "Grandpa.",
+   "start": 0.615,
+   "end": 1.254
+  },
+  {
+   "text": "You're",
+   "start": 1.486,
+   "end": 1.718
+  },
+  {
+   "text": "hearing",
+   "start": 1.753,
+   "end": 1.985
+  },
+  {
+   "text": "an",
+   "start": 2.032,
+   "end": 2.101
+  },
+  {
+   "text": "AI",
+   "start": 2.194,
+   "end": 2.554
+  },
+  {
+   "text": "version",
+   "start": 2.635,
+   "end": 2.949
+  },
+  {
+   "text": "of",
+   "start": 2.995,
+   "end": 3.042
+  },
+  {
+   "text": "Nia's",
+   "start": 3.123,
+   "end": 3.448
+  },
+  {
+   "text": "voice.",
+   "start": 3.495,
+   "end": 4.029
+  },
+  {
+   "text": "How",
+   "start": 4.191,
+   "end": 4.365
+  },
+  {
+   "text": "are",
+   "start": 4.412,
+   "end": 4.505
+  },
+  {
+   "text": "the",
+   "start": 4.54,
+   "end": 4.609
+  },
+  {
+   "text": "roses",
+   "start": 4.644,
+   "end": 5.016
+  },
+  {
+   "text": "doing?",
+   "start": 5.062,
+   "end": 5.712
+  }
+ ]
+}

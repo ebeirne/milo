@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { BigButton } from "./big-button";
+import { Intro, NextLink, Part, Tags } from "./console";
 import type { Flag } from "@/lib/db/flags";
 import type { ConversationSummary } from "@/lib/db/summaries";
 import type { DayEvent } from "@/lib/schedule";
@@ -37,28 +38,25 @@ export function DayOverview() {
   }
   const open = overview?.flags.filter((flag) => !flag.acknowledged) ?? [];
   const seen = overview?.flags.filter((flag) => flag.acknowledged) ?? [];
-  const moods = overview?.summaries.filter((item) => item.mood).slice(0, 7).reverse() ?? [];
-  return <div className="voice-library">
-    <div className="section-heading"><div><p className="eyebrow">A WINDOW INTO THEIR DAY</p><h1>{overview?.preferredName ? `How ${overview.preferredName} has been.` : "How they have been."}</h1><p className="muted">Short summaries and concerns from the last seven days. Full conversations are never shown here.</p></div></div>
-    {!overview && !message && <p role="status">Gathering the overview… this can take a few seconds.</p>}
+  return <>
+    <Intro kicker="Family space" title="Their day" sub={`How ${overview?.preferredName ?? "they"} ${overview?.preferredName ? "has" : "have"} been this week. Never full conversations.`} meta={<><span>Step 05 of 05</span><Tags items={[open.length ? { text: `${open.length} waiting`, tone: "alert" } : "Nothing waiting"]} /></>} />
+    {!overview && !message && <p className="entries-empty" role="status">Gathering the overview… this can take a few seconds.</p>}
     {message && <p className="form-message form-message-error" role="alert">{message}</p>}
-    {overview && <div className="day-grid">
-      <section className="card guidance-card wide" aria-labelledby="flags-title"><h2 id="flags-title">Needs your attention</h2>
-        {!open.length && <p className="field-note">Nothing is waiting for you.</p>}
-        <ul className="guidance-list">{open.map((flag) => <li key={flag.id}><span className={`flag-${flag.tier}`}><strong>{tiers[flag.tier]}</strong> · {when(flag.created_at)}<br />{flag.reason}{flag.kind === "self_harm" && <><br />The 988 Suicide &amp; Crisis Lifeline was shown to them.</>}</span><BigButton secondary disabled={Boolean(busy)} onClick={() => void acknowledge(flag)} aria-label={`Acknowledge: ${flag.reason}`}>{busy === flag.id ? "Saving…" : "Acknowledge"}</BigButton></li>)}</ul>
-        {seen.length > 0 && <details className="persona-form"><summary>Acknowledged ({seen.length})</summary><ul className="guidance-list">{seen.map((flag) => <li key={flag.id}><span>{tiers[flag.tier]} · {when(flag.created_at)} · {flag.reason}</span></li>)}</ul></details>}
-        <p className="field-note">Familiar never calls anyone. In an emergency it shows them a Call 911 button and records it here.</p>
-      </section>
-      <section className="card guidance-card" aria-labelledby="summaries-title"><h2 id="summaries-title">Conversations</h2>
-        {!overview.summaries.length && <p className="field-note">No conversations yet this week.</p>}
-        <ul className="guidance-list">{overview.summaries.map((item) => <li key={item.id}><span><strong>{when(item.started_at)}</strong>{item.mood && <span className="mood-chip">{item.mood}</span>}<br />{item.summary}</span></li>)}</ul>
-        {overview.pendingSummaries > 0 && <p className="field-note">{overview.pendingSummaries} recent conversation{overview.pendingSummaries === 1 ? "" : "s"} could not be summarized yet. Reload to try again.</p>}
-        {moods.length > 1 && <p className="field-note">Mood, oldest to newest: {moods.map((item) => item.mood).join(" → ")}</p>}
-      </section>
-      <section className="card guidance-card" aria-labelledby="events-title"><h2 id="events-title">Reminders, last 24 hours</h2>
-        {!overview.events.length && <p className="field-note">No reminders or check-ins came due.</p>}
-        <ul className="guidance-list">{overview.events.map((event) => <li key={event.id}><span><strong>{statuses[event.status]}</strong> · {when(event.created_at)}<br />{event.kind === "checkin" ? "Check-in" : event.text}</span></li>)}</ul>
-      </section>
-    </div>}
-  </div>;
+    {overview && <>
+      <Part id="attention" title="Needs your attention" note="Milo never calls anyone. In an emergency it shows a Call 911 button and records it here.">
+        {open.length ? <ul className="entries">{open.map((flag) => <li className="entry" key={flag.id}>
+          <div className="entry-text"><Tags items={[{ text: tiers[flag.tier], tone: flag.tier === "concern" ? "warn" : "alert" }, when(flag.created_at)]} /><p>{flag.reason}</p>{flag.kind === "self_harm" && <p className="small">The 988 Suicide &amp; Crisis Lifeline was shown to them.</p>}</div>
+          <div className="entry-actions"><BigButton secondary disabled={Boolean(busy)} onClick={() => void acknowledge(flag)} aria-label={`Acknowledge: ${flag.reason}`}>{busy === flag.id ? "Saving…" : "Acknowledge"}</BigButton></div>
+        </li>)}</ul> : <p className="entries-empty">Nothing is waiting for you.</p>}
+        {seen.length > 0 && <details className="more"><summary>Acknowledged ({seen.length})</summary><ul className="entries">{seen.map((flag) => <li className="entry" key={flag.id}><div className="entry-text"><Tags items={[tiers[flag.tier], when(flag.created_at)]} /><p>{flag.reason}</p></div></li>)}</ul></details>}
+      </Part>
+      <Part id="conversations" title="Conversations" note={overview.pendingSummaries > 0 ? `${overview.pendingSummaries} recent conversation${overview.pendingSummaries === 1 ? "" : "s"} could not be summarized yet. Reload to try again.` : "A sentence or two each, with the mood."}>
+        {overview.summaries.length ? <ul className="entries">{overview.summaries.map((item) => <li className="entry" key={item.id}><div className="entry-text"><Tags items={[when(item.started_at), ...(item.mood ? [{ text: item.mood, tone: "on" as const }] : [])]} /><p>{item.summary}</p></div></li>)}</ul> : <p className="entries-empty">No conversations yet this week.</p>}
+      </Part>
+      <Part id="answered" title="Reminders, last 24 hours">
+        {overview.events.length ? <ul className="entries">{overview.events.map((event) => <li className="entry" key={event.id}><div className="entry-text"><Tags items={[event.status === "missed" ? { text: statuses[event.status], tone: "warn" } : statuses[event.status], when(event.created_at)]} /><p>{event.kind === "checkin" ? "Check-in" : event.text}</p></div></li>)}</ul> : <p className="entries-empty">No reminders or check-ins came due.</p>}
+      </Part>
+    </>}
+    <NextLink after="05" />
+  </>;
 }

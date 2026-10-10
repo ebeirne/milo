@@ -90,7 +90,7 @@ export function DueReminders({ quiet, volume }: { quiet: boolean; volume: number
   const reminder = event.kind === "reminder";
   return (
     <section className="card due-card" role="alert" aria-labelledby="due-title">
-      <p className="due-voice"><Bell size={24} aria-hidden="true" />{event.speaker ? event.speaker.label : "Familiar · AI stock voice"}</p>
+      <p className="due-voice"><Bell size={24} aria-hidden="true" />{event.speaker ? event.speaker.label : "Milo · AI stock voice"}</p>
       <h2 id="due-title">{reminder ? "A reminder for you" : "Just checking in"}</h2>
       <p className="due-text">{event.text}</p>
       <div className="talk-controls">

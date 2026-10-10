@@ -6,7 +6,7 @@ import { boundedBody, sameOrigin } from "@/lib/voice/request";
 
 export const runtime = "nodejs";
 export async function POST(request: Request) {
-  if (!sameOrigin(request) || !caregiverAuthorized(request)) return Response.json({ message: "Please unlock Familiar first." }, { status: 403 });
+  if (!sameOrigin(request) || !caregiverAuthorized(request)) return Response.json({ message: "Please unlock Milo first." }, { status: 403 });
   try {
     const value = JSON.parse(new TextDecoder().decode(await boundedBody(request, 3000)));
     if (typeof value.name !== "string" || typeof value.relationship !== "string" || !validOwnerDetails(value.name, value.relationship)) return Response.json({ message: "Enter the voice owner’s name and relationship." }, { status: 400 });

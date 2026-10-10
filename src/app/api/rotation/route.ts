@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  if (!caregiverAuthorized(request)) return Response.json({ message: "Please unlock Familiar first." }, { status: 401 });
+  if (!caregiverAuthorized(request)) return Response.json({ message: "Please unlock Milo first." }, { status: 401 });
   try {
     const household = await getHousehold();
     return Response.json({ policy: household.patient ? await getRotationPolicy(household.patient.id) : "single" }, { headers: { "Cache-Control": "no-store" } });

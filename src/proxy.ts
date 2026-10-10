@@ -7,7 +7,7 @@ export function proxy(request: NextRequest) {
   // These POST routes enforce a scoped recording token or caregiver session themselves.
   const ownerPost = request.method === "POST" && (pathname === "/api/voices" || /^\/api\/voices\/[\da-f-]{36}\/preview$/.test(pathname));
   if (publicRoute || ownerPost || caregiverAuthorized(request)) return NextResponse.next();
-  if (pathname.startsWith("/api/")) return NextResponse.json({ message: "Please unlock Familiar first." }, { status: 401 });
+  if (pathname.startsWith("/api/")) return NextResponse.json({ message: "Please unlock Milo first." }, { status: 401 });
   return NextResponse.redirect(new URL("/access", request.url));
 }
 

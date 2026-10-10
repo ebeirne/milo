@@ -1,12 +1,13 @@
 "use client";
 import { useEffect, useState, type FormEvent } from "react";
 import { BigButton } from "./big-button";
+import { Intro, NextLink, Part, Tags, serial } from "./console";
 import { RULE_KINDS, type MemoryFact, type RuleKind, type TopicRule } from "@/lib/guidance";
 
-const kinds: Record<RuleKind, { title: string; note: string; label: string; placeholder: string }> = {
-  avoid: { title: "Topics to avoid", note: "Familiar won’t bring these up, and gently moves on if they come up.", label: "A topic to avoid", placeholder: "The old house being sold" },
-  steer: { title: "Topics to steer toward", note: "Comforting subjects to return to when a conversation stalls.", label: "A topic they enjoy", placeholder: "The garden and her roses" },
-  never_say: { title: "Never say", note: "Things Familiar must never say or imply.", label: "Something never to say", placeholder: "Maria passed away in 2019, never say she is alive" },
+const kinds: Record<RuleKind, { title: string; note: string; label: string; placeholder: string; code: string }> = {
+  avoid: { title: "Topics to avoid", note: "Milo won’t raise these, and moves on gently if they come up.", label: "A topic to avoid", placeholder: "The old house being sold", code: "A" },
+  steer: { title: "Topics they enjoy", note: "Comforting subjects to return to.", label: "A topic they enjoy", placeholder: "The garden and her roses", code: "S" },
+  never_say: { title: "Never say", note: "Things Milo must never say or imply.", label: "Something never to say", placeholder: "Maria passed away in 2019, never say she is alive", code: "N" },
 };
 
 export function GuidancePanel() {
@@ -56,22 +57,39 @@ export function GuidancePanel() {
   }
   const pending = facts.filter((fact) => !fact.approved);
   const approved = facts.filter((fact) => fact.approved);
-  return <div className="voice-library">
-    <div className="section-heading"><div><p className="eyebrow">TOPICS &amp; MEMORY</p><h1>You steer the conversation.</h1><p className="muted">These rules are part of every reply, whichever voice is speaking.</p></div></div>
-    {loading && <p role="status">Loading your rules…</p>}
+  const addRow = (id: string, label: string, placeholder: string, kind: RuleKind | "fact") => (
+    <form className="add-row" onSubmit={(event) => void add(event, kind)}>
+      <div className="field"><label htmlFor={id}>{label}</label><input id={id} name="text" required maxLength={200} placeholder={placeholder} /></div>
+      <BigButton type="submit" secondary disabled={busy}>Add</BigButton>
+    </form>
+  );
+  return <>
+    <Intro kicker="Family space" title="Topics & memory" sub="Part of every reply, in every voice." meta={<><span>Step 03 of 05</span><Tags items={[`${rules.length} rules`, `${approved.length} facts`]} /></>} />
+    {loading && <p className="entries-empty" role="status">Loading…</p>}
     {message && <p className="form-message form-message-error" role="alert">{message}</p>}
-    {pending.length > 0 && <section className="card guidance-card" aria-labelledby="review-title"><h2 id="review-title">Waiting for your review</h2><p className="field-note">Familiar suggested remembering these from conversations. Nothing here is used until you approve it.</p>
-      <ul className="guidance-list">{pending.map((fact) => <li key={fact.id}><span>{fact.text}</span><span className="guidance-actions"><BigButton secondary disabled={busy} onClick={() => void approve(fact.id)} aria-label={`Approve: ${fact.text}`}>Approve</BigButton><button className="text-button" disabled={busy} onClick={() => void removeFact(fact.id)} aria-label={`Dismiss: ${fact.text}`}>Dismiss</button></span></li>)}</ul>
-    </section>}
-    <div className="voice-card-grid">{RULE_KINDS.map((kind) => <section className="card guidance-card" key={kind} aria-labelledby={`${kind}-title`}>
-      <h2 id={`${kind}-title`}>{kinds[kind].title}</h2><p className="field-note">{kinds[kind].note}</p>
-      <ul className="guidance-list">{rules.filter((rule) => rule.kind === kind).map((rule) => <li key={rule.id}><span>{rule.text}</span><button className="text-button" disabled={busy} onClick={() => void removeRule(rule.id)} aria-label={`Remove: ${rule.text}`}>Remove</button></li>)}</ul>
-      <form onSubmit={(event) => void add(event, kind)}><div className="field"><label htmlFor={`${kind}-text`}>{kinds[kind].label}</label><input id={`${kind}-text`} name="text" required maxLength={200} placeholder={kinds[kind].placeholder} /></div><BigButton type="submit" secondary disabled={busy}>Add</BigButton></form>
-    </section>)}
-    <section className="card guidance-card" aria-labelledby="facts-title">
-      <h2 id="facts-title">Things Familiar may remember</h2><p className="field-note">Facts about the person that any voice may mention. Shared memories with one person belong in that voice’s persona.</p>
-      <ul className="guidance-list">{approved.map((fact) => <li key={fact.id}><span>{fact.text}</span><button className="text-button" disabled={busy} onClick={() => void removeFact(fact.id)} aria-label={`Remove: ${fact.text}`}>Remove</button></li>)}</ul>
-      <form onSubmit={(event) => void add(event, "fact")}><div className="field"><label htmlFor="fact-text">A fact to remember</label><input id="fact-text" name="text" required maxLength={200} placeholder="She has tea at four every afternoon." /></div><BigButton type="submit" secondary disabled={busy}>Add</BigButton></form>
-    </section></div>
-  </div>;
+    {pending.length > 0 && <Part title="Waiting for you" note="Milo suggested these from conversations. Nothing is used until you approve it.">
+      <ul className="entries">{pending.map((fact, index) => <li className="entry" key={fact.id}>
+        <div className="entry-text"><Tags items={[serial("M", index), { text: "Suggested", tone: "warn" }]} /><p>{fact.text}</p></div>
+        <div className="entry-actions"><BigButton secondary disabled={busy} onClick={() => void approve(fact.id)} aria-label={`Approve: ${fact.text}`}>Approve</BigButton><button className="text-button" disabled={busy} onClick={() => void removeFact(fact.id)} aria-label={`Dismiss: ${fact.text}`}>Dismiss</button></div>
+      </li>)}</ul>
+    </Part>}
+    {RULE_KINDS.map((kind) => {
+      const items = rules.filter((rule) => rule.kind === kind);
+      return <Part key={kind} id={kind} title={kinds[kind].title} note={kinds[kind].note}>
+        {items.length ? <ul className="entries">{items.map((rule, index) => <li className="entry" key={rule.id}>
+          <div className="entry-text"><Tags items={[serial(kinds[kind].code, index)]} /><p>{rule.text}</p></div>
+          <div className="entry-actions"><button className="icon-button" disabled={busy} onClick={() => void removeRule(rule.id)} aria-label={`Remove: ${rule.text}`}>−</button></div>
+        </li>)}</ul> : <p className="entries-empty">None yet.</p>}
+        {addRow(`${kind}-text`, kinds[kind].label, kinds[kind].placeholder, kind)}
+      </Part>;
+    })}
+    <Part id="facts" title="Things Milo may remember" note="Facts any voice may mention. Memories shared with one person belong in that voice’s persona.">
+      {approved.length ? <ul className="entries">{approved.map((fact, index) => <li className="entry" key={fact.id}>
+        <div className="entry-text"><Tags items={[serial("F", index), ...(fact.source === "proposed" ? ["Suggested by Milo"] : [])]} /><p>{fact.text}</p></div>
+        <div className="entry-actions"><button className="icon-button" disabled={busy} onClick={() => void removeFact(fact.id)} aria-label={`Remove: ${fact.text}`}>−</button></div>
+      </li>)}</ul> : <p className="entries-empty">None yet.</p>}
+      {addRow("fact-text", "A fact to remember", "She has tea at four every afternoon.", "fact")}
+    </Part>
+    <NextLink after="03" />
+  </>;
 }

@@ -1,46 +1,19 @@
-import { ArrowRight, HeartHandshake, Leaf, MessageCircle } from "lucide-react";
-import { Banner } from "@/components/banner";
-import { BigButton } from "@/components/big-button";
-import { CompanionIllustration } from "@/components/companion-illustration";
-import { ScreenShell } from "@/components/screen-shell";
+import { Landing } from "@/components/landing";
 import { getHouseholdResult } from "@/lib/db/repository";
-import { TalkPanel } from "@/components/talk-panel";
+import sample from "../../public/sample/family-voice.json";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+// The website as the app serves it: the band at the end leads into setup, or into Talk once it is set up.
 export default async function Home() {
-  const result = await getHouseholdResult();
-  const patient = result.household?.patient;
-  if (patient) {
-    return <ScreenShell><div className="patient-content"><TalkPanel /><Banner /></div></ScreenShell>;
-  }
+  const name = (await getHouseholdResult()).household?.patient?.preferred_name;
   return (
-    <ScreenShell>
-      <div className="patient-content">
-        <div className="eyebrow"><span className="status-dot" /> A little company, at your pace</div>
-        <section className="welcome" aria-labelledby="welcome-title">
-          <CompanionIllustration />
-          <h1 id="welcome-title">A familiar feeling.<br />A little closer.</h1>
-          <p className="welcome-description">A warm conversation. A voice you know.<br />A moment that feels like home.</p>
-          <div className="welcome-action">
-            <BigButton href="/caregiver">Set up Familiar<ArrowRight size={26} aria-hidden="true" /></BigButton>
-            <p className="action-note">Save a few details, then start a conversation.</p>
-          </div>
-        </section>
-        <Banner />
-        <div className="patient-values">
-          <span><HeartHandshake size={25} aria-hidden="true" /> Made with care</span>
-          <span><MessageCircle size={25} aria-hidden="true" /> Always honest</span>
-          <span><Leaf size={25} aria-hidden="true" /> No rush. No pressure.</span>
-        </div>
-        <details className="help-panel">
-          <summary>What is Familiar?</summary>
-          <p>Familiar is being built as a simple companion for quiet moments. With their permission, family and friends will be able to record their voices for AI conversations.</p>
-          <p>The AI is not your family member. You can always stop a conversation. Family will see short summaries and concerns, rather than full conversations.</p>
-          <p>You can talk using a stock AI voice. Family voice recording, reminders, and safety notifications are not connected yet.</p>
-        </details>
-      </div>
-    </ScreenShell>
+    <Landing
+      sample={sample}
+      title={name ? `Ready when ${name} is` : "Set up Milo"}
+      action={name ? { href: "/talk", label: "Open Talk" } : { href: "/caregiver", label: "Start setup", down: true }}
+      footerLinks={[{ href: "/caregiver", label: "Set up Milo" }, { href: "/talk", label: "Open Talk" }]}
+    />
   );
 }

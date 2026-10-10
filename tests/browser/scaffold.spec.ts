@@ -5,16 +5,16 @@ test("home and caregiver screens are accessible and usable without a database", 
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("A familiar feeling.");
-  await expect(page.getByRole("complementary", { name: "About AI voices" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("A familiar voice, whenever they need one.");
+  await expect(page.getByText("Always labeled as AI", { exact: true })).toBeAttached();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   const homeAudit = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
   expect(homeAudit.violations).toEqual([]);
   await page.screenshot({ path: `.verification/home-${testInfo.project.name}.png`, fullPage: true });
 
-  await page.getByRole("link", { name: "Set up Familiar", exact: true }).click();
+  await page.getByRole("link", { name: "Start setup", exact: true }).click();
   await expect(page).toHaveURL(/\/caregiver$/);
-  await expect(page.getByRole("heading", { name: "Start with the people" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Who Milo is for" })).toBeVisible();
   await expect(page.getByRole("alert").filter({ hasText: "Setup needs a database connection." })).toBeVisible();
   await expect(page.getByRole("button", { name: "Save & get started" })).toBeDisabled();
   await expect(page.getByLabel("Their name", { exact: true })).toBeDisabled();
@@ -22,7 +22,7 @@ test("home and caregiver screens are accessible and usable without a database", 
   const caregiverAudit = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
   expect(caregiverAudit.violations).toEqual([]);
   await page.screenshot({ path: `.verification/caregiver-${testInfo.project.name}.png`, fullPage: true });
-  await page.getByRole("link", { name: "Companion home" }).click();
+  await page.getByRole("link", { name: "Milo home" }).click();
   await expect(page).toHaveURL("/");
   expect(errors).toEqual([]);
 });

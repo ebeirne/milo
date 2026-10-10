@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
 export async function GET(request: Request) {
-  if (!caregiverAuthorized(request)) return Response.json({ message: "Please unlock Familiar first." }, { status: 401 });
+  if (!caregiverAuthorized(request)) return Response.json({ message: "Please unlock Milo first." }, { status: 401 });
   try {
     const household = await getHousehold();
     if (!household.patient) return Response.json({ voices: [], setupRequired: true });

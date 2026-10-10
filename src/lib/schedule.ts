@@ -39,7 +39,7 @@ export function isDue(item: { time: string; days: number[] }, now: LocalNow, win
 export function spokenLines(kind: ScheduleKind, text: string, preferredName: string, voiceName: string | null): string[] {
   const body = /[.!?]$/.test(text.trim()) ? text.trim() : `${text.trim()}.`;
   return [
-    `Hello ${preferredName}. This is ${voiceName ? `the AI voice of ${voiceName}` : "Familiar"}.`,
+    `Hello ${preferredName}. This is ${voiceName ? `the AI voice of ${voiceName}` : "Milo"}.`,
     kind === "reminder" ? `Here is a reminder. ${body}` : body,
   ];
 }

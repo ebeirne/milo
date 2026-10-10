@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { audioMime, cleanSpeech, ReplyParser, readSse } from "../src/lib/voice/protocol";
 import { speechTicket, readSpeechTicket } from "../src/lib/voice/tickets";
-import { fillerKey, streamSpeech } from "../src/lib/voice/elevenlabs";
+import { fillerKey, forSpeech, streamSpeech } from "../src/lib/voice/elevenlabs";
 import { streamGemini, stockPrompt } from "../src/lib/voice/gemini";
 import { boundedBody, sameOrigin } from "../src/lib/voice/request";
 import { DEFAULT_STOCK_VOICE_ID } from "../src/lib/voice/config";
@@ -23,6 +23,8 @@ test("only two sentences are emitted and incomplete labels are discarded", () =>
   const parser = new ReplyParser();
   assert.deepEqual(parser.push("Hello. How are you? This must not be spoken. [[flag:emerg", true), ["Hello.", "How are you?"]);
   assert.equal(cleanSpeech("[warmly] **Hello.** [[mood:calm]]"), "Hello.");
+  // Spoken text says the name the way it is meant (MEE-lo); screens keep "Milo".
+  assert.equal(forSpeech("I'm Milo, an AI companion. Milos"), "I'm Mee-lo, an AI companion. Milos");
 });
 
 test("SSE parsing handles split UTF-8, CRLF, multiline data, and final events", async () => {

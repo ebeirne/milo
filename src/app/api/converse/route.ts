@@ -29,7 +29,7 @@ const activeTurns = state.familiarActiveTurns ??= new Set<string>();
 export async function POST(request: Request) {
   const started = performance.now();
   if (!sameOrigin(request)) return Response.json({ message: "Request not allowed." }, { status: 403 });
-  if (!providersConfigured()) return Response.json({ message: "Voice conversations aren’t ready yet. Please ask the person setting up Familiar for help." }, { status: 503 });
+  if (!providersConfigured()) return Response.json({ message: "Voice conversations aren’t ready yet. Please ask the person setting up Milo for help." }, { status: 503 });
   let text: string | undefined;
   let audio: { data: string; mimeType: string } | undefined;
   let previousId: string | null;
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
   let conversation: Awaited<ReturnType<typeof openConversation>>;
   try {
     const household = await getHousehold();
-    if (!household.patient) return Response.json({ message: "Please complete Familiar’s setup first." }, { status: 409 });
+    if (!household.patient) return Response.json({ message: "Please complete Milo’s setup first." }, { status: 409 });
     patientId = household.patient.id;
     preferredName = household.patient.preferred_name;
     if (activeTurns.has(patientId)) return Response.json({ message: "Please wait a moment before speaking again." }, { status: 429 });
@@ -103,7 +103,7 @@ export async function POST(request: Request) {
     try {
       const evaluation = await evaluateReply({ ...completedTurn, context: JSON.stringify({ speaker: speaker ? `AI companion using an AI recreation of ${speaker.name}'s voice, recorded with their permission; approved shared facts: ${JSON.stringify(speaker.persona?.shared_facts ?? [])}` : "AI companion using a stock voice", approvedFactsAboutThePerson: guidance.facts, history: conversation.history }) });
       await saveEvaluation(evaluationId, conversation.id, provider, evaluation);
-    } catch { console.error("Familiar reply evaluation could not be saved."); }
+    } catch { console.error("Milo reply evaluation could not be saved."); }
   });
   const stream = conversationStream({ conversationId: conversation.id, text, startedAt: started, evaluationId, speaker: speaker ? { info: { id: speaker.id, name: speaker.name, relationship: speaker.relationship, label: speakerLabel(speaker.name) }, switched } : null }, request.signal, {
     reply: (signal, notice) => streamConversation({ text, audio, preferredName, history: conversation.history, speaker, handoffFrom, guidance }, signal, (model) => { provider = model.provider; notice(model); }),
@@ -121,7 +121,7 @@ export async function POST(request: Request) {
       const safety = assess(heard, modelTier, await awaitingHelp);
       if (!safety) return null;
       try { if (database && await addFlag(database, patientId, conversation.id, safety)) notifyCaregiver(safety); }
-      catch { console.error("Familiar could not save a safety flag."); }
+      catch { console.error("Milo could not save a safety flag."); }
       return safety;
     },
     release: () => activeTurns.delete(patientId),

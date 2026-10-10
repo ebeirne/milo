@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Mic, Phone, Send, Square, Volume2, MessageCircle } from "lucide-react";
 import { BigButton } from "./big-button";
 import { DueReminders } from "./due-reminders";
+import { Banner } from "./banner";
+import { VoiceOrb, type OrbMode } from "./voice-orb";
 import type { SafetyKind } from "@/lib/safety";
 import { VoicePlayer } from "@/lib/voice/player";
 import { FIXED_PHRASES, readSse, STOCK_VOICE_LABEL, type ConversationEvent, type SpeakerInfo, type VoiceConfig } from "@/lib/voice/protocol";
@@ -105,7 +107,7 @@ export function TalkPanel() {
         }
       } catch {
         if (!abort.signal.aborted) {
-          setMessage("Familiar isn’t ready right now. Please try again in a moment.");
+          setMessage("Milo isn’t ready right now. Please try again in a moment.");
           setStatus("idle");
           statusRef.current = "idle";
         }
@@ -225,7 +227,7 @@ export function TalkPanel() {
       await player.current?.waitForIdle();
       if (currentVersion !== version.current) return;
       addMetrics({ playbackCompleteMs: Math.round(performance.now() - started) });
-      if (process.env.NODE_ENV === "development") console.info("Familiar turn timings (ms)", { ...metricRef.current });
+      if (process.env.NODE_ENV === "development") console.info("Milo turn timings (ms)", { ...metricRef.current });
       if (!hadError) setMessage("");
       if (debug && conversationId.current && evaluationId) {
         const id = conversationId.current;
@@ -354,14 +356,17 @@ export function TalkPanel() {
     void fetch("/api/flags", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ conversationId: conversationId.current }) }).catch(() => {});
   }
 
+  const orbMode: OrbMode = status === "recording" ? "listening" : status === "speaking" ? "speaking" : status === "thinking" || status === "starting" ? "thinking" : "idle";
+
   // Shown once, before the first conversation: what the voices are and what family can see.
   if (config?.ready && config.onboarding) return (
-    <section className="talk-panel" aria-labelledby="onboarding-title">
+    <section className="talk" data-nav-theme="light" aria-labelledby="onboarding-title">
+      <p className="talk-voice"><MessageCircle size={22} strokeWidth={1.5} aria-hidden="true" />{STOCK_VOICE_LABEL}</p>
       <h1 id="onboarding-title">Before we talk</h1>
-      <div className="card onboarding-card">
+      <div className="onboarding-card">
         {FIXED_PHRASES.onboarding.split(/(?<=\.)\s+/).map((sentence) => <p key={sentence}>{sentence}</p>)}
         <div className="talk-controls">
-          <BigButton secondary onClick={() => void hearOnboarding()}><Volume2 size={26} aria-hidden="true" />Read this to me</BigButton>
+          <BigButton secondary onClick={() => void hearOnboarding()}><Volume2 size={24} aria-hidden="true" />Read this to me</BigButton>
           <BigButton onClick={() => void acknowledgeOnboarding()}>I understand</BigButton>
         </div>
       </div>
@@ -371,47 +376,55 @@ export function TalkPanel() {
 
   const busy = ["starting", "thinking", "speaking"].includes(status);
   return (
-    <section className="talk-panel" aria-labelledby="talk-title">
-      {speaker
-        ? <div className="talk-voice speaker-badge" aria-live="polite"><span className="speaker-avatar" aria-hidden="true">{speaker.name.slice(0, 1).toUpperCase()}</span><span><strong>{speaker.name}</strong> · {speaker.relationship}<br />{speaker.label}</span></div>
-        : <div className="talk-voice"><MessageCircle size={26} aria-hidden="true" /><span>{config?.label ?? STOCK_VOICE_LABEL}</span></div>}
-      {help && <div className="help-card" role="alert" aria-labelledby="help-title">
-        {help.step === "ask" ? <>
-          <h2 id="help-title">Do you need help?</h2>
-          <div className="talk-controls"><BigButton className="emergency-button" onClick={needHelp}>Yes, I need help</BigButton><BigButton secondary onClick={() => setHelp(null)}>I’m okay</BigButton></div>
-        </> : <>
-          <h2 id="help-title">Help is one tap away.</h2>
-          <p>Tap a button to call. Familiar cannot call for you. Your family will see that you needed help.</p>
-          <div className="talk-controls">
-            {help.kind === "self_harm" && <a className="big-button emergency-button" href="tel:988"><Phone size={30} aria-hidden="true" />Call 988 · someone to talk to</a>}
-            <a className="big-button emergency-button" href="tel:911"><Phone size={30} aria-hidden="true" />Call 911</a>
-            <BigButton secondary onClick={() => setHelp(null)}>I’m okay now</BigButton>
-          </div>
-        </>}
-      </div>}
-      {config?.ready && <DueReminders quiet={status !== "idle"} volume={volume} />}
-      <h1 id="talk-title">{config?.preferredName ? `Hello, ${config.preferredName}.` : "A little company."}</h1>
-      <p className="talk-instruction">Tap Talk to speak. Tap Finish when you’re done.</p>
-      <div className="voice-wave" aria-hidden="true">{Array.from({ length: 19 }, (_, index) => <span key={index} style={{ height: `${8 + Math.min(level * 900, 55) * (0.3 + Math.sin(index * 1.9) ** 2 * 0.7)}px` }} />)}</div>
-      <p className="talk-status" role="status" aria-live="polite">{statusText[status]}{status === "recording" && <span className="recording-time"> {seconds}s / 60s</span>}</p>
-      {config?.ready && config.microphoneReady === false && <p className="talk-message">Voice input isn’t ready. You can type a message below.</p>}
-      {config && !config.ready && <div className="talk-notice"><p>{config.reason === "setup" ? "Let’s set up your space first." : "Voice conversations aren’t ready yet. Please ask the person setting up Familiar for help."}</p><BigButton href="/caregiver" secondary>Go to family &amp; setup</BigButton></div>}
-      <div className="talk-controls">
-        <BigButton className="talk-button" disabled={!config?.ready || config.microphoneReady === false || busy} onClick={() => status === "recording" ? finishRecording() : void startRecording()}>
-          {status === "recording" ? <><Square size={30} aria-hidden="true" />Finish speaking</> : <><Mic size={34} aria-hidden="true" />Talk</>}
-        </BigButton>
-        <BigButton secondary className="stop-button" disabled={status === "idle" || status === "loading"} onClick={stop}><Square size={24} aria-hidden="true" />Stop</BigButton>
-      </div>
-      {message && <p className="talk-message" role="alert">{message}</p>}
-      {reply && <div className="reply-caption"><span>{speaker ? `AI voice of ${speaker.name}` : "Familiar’s reply"}</span><p>{reply}</p></div>}
-      <label className="volume-control"><Volume2 size={25} aria-hidden="true" /><span>Voice volume</span><input aria-label="Voice volume" type="range" min="0" max="100" value={volume} onChange={(event) => { const value = Number(event.target.value); setVolume(value); player.current?.setVolume(value / 100); }} /></label>
-      <details className="help-panel type-fallback">
-        <summary>Prefer to type?</summary>
-        <form onSubmit={(event) => void sendTyped(event)}><label htmlFor="typed-message">Your message</label><textarea id="typed-message" value={typed} onChange={(event) => setTyped(event.target.value)} maxLength={2000} rows={3} disabled={!config?.ready || status !== "idle"} /><BigButton type="submit" disabled={!config?.ready || status !== "idle" || !typed.trim()}><Send size={23} aria-hidden="true" />Send message</BigButton></form>
-      </details>
-      <p className="talk-privacy">AI services process your recording and words to make a reply and review its quality. Familiar doesn’t save audio and never calls anyone. Your family can see short summaries and worrying moments, not every word.</p>
-      {debug && <details className="latency-panel" open><summary>Turn timing</summary><dl>{([ ["First sentence from server", "firstPhraseMs"], ["First audio (includes filler)", "firstPlaybackMs"], ["First reply audio", "firstReplyPlaybackMs"], ["Playback complete", "playbackCompleteMs"], ["Stop handler", "stopMs"] ] as const).map(([label, key]) => <div key={key}><dt>{label}</dt><dd>{metrics[key] === undefined ? "—" : `${metrics[key]} ms`}</dd></div>)}</dl><p>Browser playback timing; speaker audibility and phone performance need device testing.</p>{heard && <p>Heard: {heard}</p>}</details>}
-      {debug && <details className="latency-panel" open><summary>Conversation models</summary><p>Conversation: {model?.provider ?? config?.conversationProvider ?? "loading"}{model?.fallback ? " (Gemini fallback)" : ""}</p><p>Jev: {evaluation?.status ?? (config?.evaluatorConfigured ? "awaiting a completed reply" : "key not configured")}</p>{evaluation?.status === "completed" && <dl>{Object.entries(evaluation.judgments).map(([check, judgment]) => judgment && <div key={check}><dt>{check.replaceAll("_", " ")}</dt><dd>{judgment.choice} · confidence {judgment.confidence.toFixed(2)}</dd></div>)}</dl>}<p>Evaluation only. Confidence describes the model’s judgment, not verified correctness. Reviews do not change speech or emergency handling.</p></details>}
-    </section>
+    <>
+      <section className="talk" data-nav-theme="light" aria-labelledby="talk-title">
+        {speaker
+          ? <div className="talk-voice speaker-badge" aria-live="polite"><span className="speaker-avatar" aria-hidden="true">{speaker.name.slice(0, 1).toUpperCase()}</span><span><strong>{speaker.name}</strong> · {speaker.relationship}<br />{speaker.label}</span></div>
+          : <div className="talk-voice"><MessageCircle size={22} strokeWidth={1.5} aria-hidden="true" /><span>{config?.label ?? STOCK_VOICE_LABEL}</span></div>}
+        {help && <div className="help-card" role="alert" aria-labelledby="help-title">
+          {help.step === "ask" ? <>
+            <h2 id="help-title">Do you need help?</h2>
+            <div className="talk-controls"><BigButton className="emergency-button" onClick={needHelp}>Yes, I need help</BigButton><BigButton secondary onClick={() => setHelp(null)}>I’m okay</BigButton></div>
+          </> : <>
+            <h2 id="help-title">Help is one tap away.</h2>
+            <p>Tap a button to call. Milo cannot call for you. Your family will see that you needed help.</p>
+            <div className="talk-controls">
+              {help.kind === "self_harm" && <a className="big-button emergency-button" href="tel:988"><Phone size={28} aria-hidden="true" />Call 988 · someone to talk to</a>}
+              <a className="big-button emergency-button" href="tel:911"><Phone size={28} aria-hidden="true" />Call 911</a>
+              <BigButton secondary onClick={() => setHelp(null)}>I’m okay now</BigButton>
+            </div>
+          </>}
+        </div>}
+        {config?.ready && <DueReminders quiet={status !== "idle"} volume={volume} />}
+        <h1 id="talk-title">{config?.preferredName ? `Hello, ${config.preferredName}.` : "A little company."}</h1>
+        <p className="talk-instruction">Tap Talk to speak. Tap Finish when you’re done.</p>
+        <div className="talk-stage"><VoiceOrb level={level} mode={orbMode} /></div>
+        <p className="talk-status" role="status" aria-live="polite">{statusText[status]}{status === "recording" && <span className="recording-time"> {seconds}s / 60s</span>}</p>
+        {config?.ready && config.microphoneReady === false && <p className="talk-message">Voice input isn’t ready. You can type a message below.</p>}
+        {config && !config.ready && <div className="talk-notice"><p>{config.reason === "setup" ? "Let’s set up your space first." : "Voice conversations aren’t ready yet. Please ask the person setting up Milo for help."}</p><BigButton href="/caregiver" secondary>Go to family &amp; setup</BigButton></div>}
+        <div className="talk-controls">
+          <BigButton className="talk-button" disabled={!config?.ready || config.microphoneReady === false || busy} onClick={() => status === "recording" ? finishRecording() : void startRecording()}>
+            {status === "recording" ? <><Square size={28} aria-hidden="true" />Finish speaking</> : <><Mic size={32} strokeWidth={1.6} aria-hidden="true" />Talk</>}
+          </BigButton>
+          <BigButton secondary className="stop-button" disabled={status === "idle" || status === "loading"} onClick={stop}><Square size={22} aria-hidden="true" />Stop</BigButton>
+        </div>
+        {message && <p className="talk-message" role="alert">{message}</p>}
+        {reply && <div className="reply-caption"><span>{speaker ? `AI voice of ${speaker.name}` : "Milo’s reply"}</span><p>{reply}</p></div>}
+      </section>
+      <section className="talk-more" data-nav-theme="light" aria-label="More ways to talk">
+        <div className="talk-more-inner">
+          <label className="volume-control"><Volume2 size={24} strokeWidth={1.5} aria-hidden="true" /><span>Voice volume</span><input aria-label="Voice volume" type="range" min="0" max="100" value={volume} onChange={(event) => { const value = Number(event.target.value); setVolume(value); player.current?.setVolume(value / 100); }} /></label>
+          <details className="help-panel type-fallback">
+            <summary>Prefer to type?</summary>
+            <form onSubmit={(event) => void sendTyped(event)}><label htmlFor="typed-message">Your message</label><textarea id="typed-message" value={typed} onChange={(event) => setTyped(event.target.value)} maxLength={2000} rows={3} disabled={!config?.ready || status !== "idle"} /><BigButton type="submit" disabled={!config?.ready || status !== "idle" || !typed.trim()}><Send size={21} aria-hidden="true" />Send message</BigButton></form>
+          </details>
+          <p className="talk-privacy">AI services process your recording and words to make a reply and review its quality. Milo doesn’t save audio and never calls anyone. Your family can see short summaries and worrying moments, not every word.</p>
+          {debug && <details className="latency-panel" open><summary>Turn timing</summary><dl>{([ ["First sentence from server", "firstPhraseMs"], ["First audio (includes filler)", "firstPlaybackMs"], ["First reply audio", "firstReplyPlaybackMs"], ["Playback complete", "playbackCompleteMs"], ["Stop handler", "stopMs"] ] as const).map(([label, key]) => <div key={key}><dt>{label}</dt><dd>{metrics[key] === undefined ? "—" : `${metrics[key]} ms`}</dd></div>)}</dl><p>Browser playback timing; speaker audibility and phone performance need device testing.</p>{heard && <p>Heard: {heard}</p>}</details>}
+          {debug && <details className="latency-panel" open><summary>Conversation models</summary><p>Conversation: {model?.provider ?? config?.conversationProvider ?? "loading"}{model?.fallback ? " (Gemini fallback)" : ""}</p><p>Jev: {evaluation?.status ?? (config?.evaluatorConfigured ? "awaiting a completed reply" : "key not configured")}</p>{evaluation?.status === "completed" && <dl>{Object.entries(evaluation.judgments).map(([check, judgment]) => judgment && <div key={check}><dt>{check.replaceAll("_", " ")}</dt><dd>{judgment.choice} · confidence {judgment.confidence.toFixed(2)}</dd></div>)}</dl>}<p>Evaluation only. Confidence describes the model’s judgment, not verified correctness. Reviews do not change speech or emergency handling.</p></details>}
+          <Banner />
+          <a className="arrow-link talk-family" href="/caregiver"><span className="pill-arrow" aria-hidden="true"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><path d="M1.5 5h7M6 2.5 8.5 5 6 7.5" /></svg></span>Family &amp; setup</a>
+        </div>
+      </section>
+    </>
   );
 }

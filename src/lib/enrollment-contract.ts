@@ -6,7 +6,7 @@ export const MAX_SAMPLE_BYTES = 20 * 1024 * 1024;
 export const MAX_CONSENT_BYTES = 3 * 1024 * 1024;
 
 export function consentStatement(name: string): string {
-  return `I am ${name.trim()}. I am recording my own voice. I give Familiar permission to make an AI recreation of my voice using ElevenLabs. I understand it will be clearly labeled as AI, and I can ask for it to be deleted.`;
+  return `I am ${name.trim()}. I am recording my own voice. I give Milo permission to make an AI recreation of my voice using ElevenLabs. I understand it will be clearly labeled as AI, and I can ask for it to be deleted.`;
 }
 
 // Speech recognition varies in spelling and spacing ("A.I.", "Eleven Labs", "labelled"), so words are compared

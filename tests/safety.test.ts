@@ -97,7 +97,7 @@ test("schedules come due once inside their window, on the device's own clock", (
   assert.equal(parseDays([1, 1]), null);
   assert.equal(parseDays([7]), null);
   assert.deepEqual(spokenLines("reminder", "Time for your pills", "Liz", "Mike"), ["Hello Liz. This is the AI voice of Mike.", "Here is a reminder. Time for your pills."]);
-  assert.deepEqual(spokenLines("checkin", "How are you feeling today?", "Liz", null), ["Hello Liz. This is Familiar.", "How are you feeling today?"]);
+  assert.deepEqual(spokenLines("checkin", "How are you feeling today?", "Liz", null), ["Hello Liz. This is Milo.", "How are you feeling today?"]);
 });
 
 test("summaries are validated before the family sees them, and speech stops at the daily cap", () => {

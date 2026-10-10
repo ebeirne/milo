@@ -34,6 +34,10 @@ async function assertStockVoice(signal: AbortSignal, fetchProvider: typeof provi
   state.familiarStockVoice = { id: settings.stockVoiceId, expires: Date.now() + 300000 };
 }
 
+// Milo is said MEE-lo, from the Greek μιλώ. Speech engines read it as MY-lo, so only the text sent for speech
+// carries a respelling; captions and screens keep the written name.
+export const forSpeech = (text: string) => cleanSpeech(text).replace(/\bMilo\b/g, "Mee-lo");
+
 // `cloneVoiceId` is only passed after the caller has verified consent for that provider voice.
 export async function streamSpeech(text: string, previousText: string, signal: AbortSignal, fetchProvider: typeof providerFetch = providerFetch, cloneVoiceId?: string): Promise<Response> {
   const settings = voiceSettings();
@@ -41,14 +45,14 @@ export async function streamSpeech(text: string, previousText: string, signal: A
   const activeSignal = AbortSignal.any([signal, AbortSignal.timeout(30000)]);
   if (!cloneVoiceId) await assertStockVoice(activeSignal, fetchProvider);
   const voiceId = cloneVoiceId ?? settings.stockVoiceId;
-  const speech = cleanSpeech(text);
+  const speech = forSpeech(text);
   if (!speech) throw new Error("No speech available");
   spendSpeechBudget(speech.length);
   const response = await fetchProvider(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}/stream?output_format=mp3_44100_128`, {
     method: "POST", signal: activeSignal,
     headers: { "xi-api-key": settings.elevenlabsKey, "Content-Type": "application/json" },
     body: JSON.stringify({
-      text: speech, previous_text: cleanSpeech(previousText).slice(-300) || undefined,
+      text: speech, previous_text: forSpeech(previousText).slice(-300) || undefined,
       model_id: settings.ttsModel,
       voice_settings: { stability: 0.5, similarity_boost: 0.75, speed: 0.85 },
     }),
@@ -65,7 +69,7 @@ export function fillerText(phrase: keyof typeof FIXED_PHRASES, voice: FillerVoic
 }
 
 export function fillerKey(phrase: keyof typeof FIXED_PHRASES, voiceId: string, model: string, voice: FillerVoice = null): string {
-  return createHash("sha256").update(JSON.stringify([voiceId, model, fillerText(phrase, voice), "mp3_44100_128", 0.85])).digest("hex");
+  return createHash("sha256").update(JSON.stringify([voiceId, model, forSpeech(fillerText(phrase, voice)), "mp3_44100_128", 0.85])).digest("hex");
 }
 
 export async function getFiller(phrase: keyof typeof FIXED_PHRASES, voice: FillerVoice = null): Promise<Uint8Array> {

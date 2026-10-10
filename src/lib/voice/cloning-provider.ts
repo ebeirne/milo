@@ -12,7 +12,7 @@ export async function createClone(name: string, sample: Uint8Array, fetchProvide
   if (!key) throw new CloneProviderError(true);
   const form = new FormData();
   form.set("name", name);
-  form.set("description", "Familiar AI voice recreation, recorded by the living voice owner with explicit consent.");
+  form.set("description", "Milo AI voice recreation, recorded by the living voice owner with explicit consent.");
   form.append("files", new Blob([new Uint8Array(sample)], { type: "audio/mpeg" }), "sample.mp3");
   const encoded = new Request("https://api.elevenlabs.io/v1/voices/add", { method: "POST", body: form });
   let response: Response;

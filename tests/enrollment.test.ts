@@ -28,12 +28,12 @@ test("spoken consent must identify the owner and grant AI voice recreation permi
   assert(matchesConsent(consentStatement("José"), "Jose"));
   assert(!matchesConsent("I am Sarah. I like gardening.", "Sarah"));
   assert(!matchesConsent(consentStatement("Mike"), "Sarah"));
-  assert(!matchesConsent(consentStatement("Sarah"), "Familiar"), "The owner's name must occur in the self-identification, not elsewhere in the statement");
+  assert(!matchesConsent(consentStatement("Sarah"), "Milo"), "The owner's name must occur in the self-identification, not elsewhere in the statement");
   assert(!matchesConsent(consentStatement("Sarah").replace("I give", "I do not give"), "Sarah"));
   assert(!matchesConsent(`${consentStatement("Sarah")} I take that permission back.`, "Sarah"));
   assert(matchesConsent(consentStatement("Sarah").replace("I am Sarah", "I'm Sarah").replace("labeled", "labelled"), "Sarah"));
   // Real transcription respells unusual names and brand words, and may drop a small word.
-  assert(matchesConsent("I am Gurtej Paul. I'm recording my own voice. I give Familiar permission to make an A.I. recreation of my voice using Eleven Labs. I understand it will be clearly labelled as AI and I can ask for it to be deleted.", "Gurtejpal"));
+  assert(matchesConsent("I am Gurtej Paul. I'm recording my own voice. I give Milo permission to make an A.I. recreation of my voice using Eleven Labs. I understand it will be clearly labelled as AI and I can ask for it to be deleted.", "Gurtejpal"));
   assert(matchesConsent(consentStatement("Sarah").replace("clearly ", ""), "Sarah"));
   assert(!matchesConsent(consentStatement("Sarah").replace("I can ask for it to be deleted", "I never agreed"), "Sarah"));
   assert(!matchesConsent("I am Sarah. I am recording my own voice.", "Sarah"));

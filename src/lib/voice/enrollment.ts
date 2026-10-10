@@ -57,7 +57,7 @@ export async function enrollVoice(input: EnrollmentInput, signal: AbortSignal, d
     mutationStarted = true;
     // Finish provider enrollment even if the browser disconnects, so its receipt
     // is not lost. A timeout is marked uncertain and cannot be auto-retried.
-    const cloned = await dependencies.clone(`${input.name.slice(0, 65)} · Familiar ${input.id.slice(0, 8)}`, sample.sample);
+    const cloned = await dependencies.clone(`${input.name.slice(0, 65)} · Milo ${input.id.slice(0, 8)}`, sample.sample);
     return await dependencies.finish(input.id, cloned.voiceId, cloned.requiresVerification);
   } catch (error) {
     const uncertain = mutationStarted && !(error instanceof CloneProviderError && error.knownFailure);

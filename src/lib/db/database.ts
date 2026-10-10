@@ -21,7 +21,7 @@ export function getPool(): Pool {
       application_name: "familiar",
     });
     // Do not log provider URLs, credentials, or patient information.
-    pool.on("error", () => console.error("Familiar database connection interrupted."));
+    pool.on("error", () => console.error("Milo database connection interrupted."));
     databaseState.familiarPool = pool;
   }
   return databaseState.familiarPool;

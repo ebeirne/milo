@@ -33,8 +33,8 @@ export type VoiceConfig = {
 export const STOCK_VOICE_LABEL = "AI stock voice · not a family member’s voice";
 export const FIXED_PHRASES = {
   thinking: "One moment.",
-  disclosure: "I'm Familiar, an AI companion. This is a stock AI voice, not your family member's voice.",
-  onboarding: "Hello. I'm Familiar, an AI companion. Some voices you hear may sound like your family. They are AI voices, made with their permission. They are not the real person. Your family can see short summaries of our chats, and anything worrying. They do not see every word.",
+  disclosure: "I'm Milo, an AI companion. This is a stock AI voice, not your family member's voice.",
+  onboarding: "Hello. I'm Milo, an AI companion. Some voices you hear may sound like your family. They are AI voices, made with their permission. They are not the real person. Your family can see short summaries of our chats, and anything worrying. They do not see every word.",
 } as const;
 
 // Handles SSE even when UTF-8 characters, lines, and events cross network chunks.

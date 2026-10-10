@@ -1,0 +1,57 @@
+{
+ "sample_note": {
+  "winner": "A stock voice standing in for a family voice.",
+  "rows": [
+   {
+    "text": "A sample family voice, played by a stock voice. Real family voices need their owner's consent.",
+    "clear": 1.41,
+    "accurate": 0.89
+   },
+   {
+    "text": "Sample only: a stock voice standing in for a granddaughter. Family voices are recorded with consent.",
+    "clear": 1.58,
+    "accurate": 0.93
+   },
+   {
+    "text": "A stock voice standing in for a family voice.",
+    "clear": 1.63,
+    "accurate": 0.88
+   },
+   {
+    "text": "A stand-in voice. Real family voices are recorded with consent.",
+    "clear": 1.59,
+    "accurate": 0.88
+   }
+  ]
+ },
+ "sample": {
+  "winner": "Good morning, Grandpa. You're hearing an AI version of Nia's voice. How are the roses doing?",
+  "rows": [
+   {
+    "text": "Morning, Grandpa. It's me, Nia. Did the roses come up this week? Tell me about the garden.",
+    "clear": 0.72,
+    "accurate": 0.14
+   },
+   {
+    "text": "Morning, Grandpa. This is Nia's AI voice, made with her permission. Did the roses come up this week?",
+    "clear": 1.48,
+    "accurate": 0.36
+   },
+   {
+    "text": "Good morning, Grandpa. You're hearing an AI version of Nia's voice. How are the roses doing?",
+    "clear": 1.69,
+    "accurate": 0.76
+   },
+   {
+    "text": "Hi Grandpa, it's Nia's voice, made by AI with her blessing. I'm not Nia herself. Shall we talk about the garden?",
+    "clear": 1.49,
+    "accurate": 0.45
+   },
+   {
+    "text": "Morning, Grandpa. This is Nia's voice, made by AI with her permission. How did you sleep?",
+    "clear": 1.49,
+    "accurate": 0.41
+   }
+  ]
+ }
+}

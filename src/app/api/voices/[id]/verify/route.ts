@@ -8,7 +8,7 @@ import { sameOrigin } from "@/lib/voice/request";
 
 export const runtime = "nodejs";
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  if (!sameOrigin(request) || !caregiverAuthorized(request)) return Response.json({ message: "Please unlock Familiar first." }, { status: 403 });
+  if (!sameOrigin(request) || !caregiverAuthorized(request)) return Response.json({ message: "Please unlock Milo first." }, { status: 403 });
   const { id } = await params;
   if (!isUuid(id)) return Response.json({ message: "Invalid voice." }, { status: 400 });
   try {

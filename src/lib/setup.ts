@@ -22,7 +22,7 @@ export function validateSetup(input: SetupInput): SetupFieldErrors {
     errors.patientName = "Enter a name of up to 100 characters.";
   }
   if (!input.preferredName.trim() || input.preferredName.trim().length > 100) {
-    errors.preferredName = "Enter the name you would like Familiar to use.";
+    errors.preferredName = "Enter the name you would like Milo to use.";
   }
   if (!input.caregiverName.trim() || input.caregiverName.trim().length > 100) {
     errors.caregiverName = "Enter your name, up to 100 characters.";
@@ -33,7 +33,7 @@ export function validateSetup(input: SetupInput): SetupFieldErrors {
     errors.caregiverEmail = "Enter a valid email address or leave this blank.";
   }
   if (!["family", "friend", "self"].includes(input.caregiverRole)) {
-    errors.caregiverRole = "Choose who you are setting up Familiar for.";
+    errors.caregiverRole = "Choose who you are setting up Milo for.";
   }
   return errors;
 }

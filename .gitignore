@@ -12,3 +12,5 @@ next-env.d.ts
 .verification/
 /PROJECT.md
 /DECISIONS.md
+# Copied from public/ by scripts/build-site.mjs
+/site/public/
