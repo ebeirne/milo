@@ -7,6 +7,26 @@
 import { mkdir } from "node:fs/promises";
 import sharp from "sharp";
 
+// Marks the largest connected area whose alpha is above `floor` (4-neighbour flood fill).
+function largestPatch(alpha, width, height, floor) {
+  const label = new Int32Array(width * height);
+  let best = 0, bestSize = 0, next = 0;
+  const stack = [];
+  for (let start = 0; start < alpha.length; start++) {
+    if (label[start] || alpha[start] < floor) continue;
+    next++; let size = 0; stack.push(start); label[start] = next;
+    while (stack.length) {
+      const pixel = stack.pop(); size++;
+      const x = pixel % width, y = (pixel - x) / width;
+      for (const neighbour of [x > 0 ? pixel - 1 : -1, x < width - 1 ? pixel + 1 : -1, y > 0 ? pixel - width : -1, y < height - 1 ? pixel + width : -1]) {
+        if (neighbour >= 0 && !label[neighbour] && alpha[neighbour] >= floor) { label[neighbour] = next; stack.push(neighbour); }
+      }
+    }
+    if (size > bestSize) { bestSize = size; best = next; }
+  }
+  return Uint8Array.from(label, (value) => (value === best ? 1 : 0));
+}
+
 const [pair, splitArg, halfArg] = process.argv.slice(2);
 const split = Number(splitArg);
 const half = Number(halfArg);
@@ -21,6 +41,7 @@ for (const [name, left] of [["left", split - half], ["right", split]]) {
   const ease = (value) => { const t = Math.min(1, Math.max(0, value)); return t * t * (3 - 2 * t); };
   const outerIsLeft = name === "left";
   const rgba = Buffer.alloc(half * height * 4);
+  const alphas = new Float32Array(half * height);
   for (let pixel = 0; pixel < half * height; pixel++) {
     const index = pixel * info.channels;
     const x = pixel % half;
@@ -42,8 +63,11 @@ for (const [name, left] of [["left", split - half], ["right", split]]) {
       const value = data[index + channel];
       rgba[pixel * 4 + channel] = alpha > 0.02 ? Math.max(0, Math.min(255, Math.round((value - 255 * (1 - alpha)) / alpha))) : 255;
     }
-    rgba[pixel * 4 + 3] = Math.round(alpha * 255);
+    alphas[pixel] = alpha;
   }
+  // Keep only the portrait itself: stray patches of haze that are not joined to the head are cleared.
+  const keep = largestPatch(alphas, half, height, 0.01);
+  for (let pixel = 0; pixel < half * height; pixel++) rgba[pixel * 4 + 3] = keep[pixel] ? Math.round(alphas[pixel] * 255) : 0;
   await sharp(rgba, { raw: { width: half, height, channels: 4 } }).webp({ quality: 88, alphaQuality: 100 }).toFile(`public/hero/${name}.webp`);
   console.log("wrote", `public/hero/${name}.webp`, `${half}x${height}`);
 }
