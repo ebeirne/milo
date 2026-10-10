@@ -48,7 +48,12 @@ export function VoiceEnrollment({ token }: { token?: string }) {
       const value = await response.json();
       if (!response.ok) throw new Error(value.message || "Voice creation could not be completed.");
       setVoice(value.voice); setConsent(null); setSample(null); setStep(4);
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Please try again."); }
+    } catch (error) {
+      const text = error instanceof Error ? error.message : "Please try again.";
+      setMessage(text);
+      // A consent problem only needs the short statement again; the voice sample is kept.
+      if (/^(Consent recording:|Please record the consent)/.test(text)) { setConsent(null); setStep(2); }
+    }
     finally { setBusy(false); }
   }
 
@@ -70,16 +75,18 @@ export function VoiceEnrollment({ token }: { token?: string }) {
       <label className="checkbox-row"><input type="checkbox" checked={owner} onChange={(event) => setOwner(event.target.checked)} />I am the living owner of the voice being recorded.</label>
       <label className="checkbox-row"><input type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} />I understand and agree to this use of my voice. AI recreations will be labeled, and I can request deletion.</label>
       <AudioRecorder label="Consent recording" minSeconds={8} maxSeconds={60} onRecording={setConsent} />
+      {sample && <p className="form-note">Your voice sample is saved. You only need to record this statement again.</p>}
       <BigButton disabled={!owner || !accepted || !consent} onClick={() => { setMessage(""); setStep(3); }}>Continue to voice sample</BigButton>
       <button className="text-button" onClick={() => { setConsent(null); setAccepted(false); setOwner(false); setStep(1); }}>Change details</button>
     </div>}
     {step === 3 && <form onSubmit={(event) => void submit(event)}>
       <h2>Record 1–3 minutes in a quiet room.</h2><p>Speak naturally, with a little space between sentences. Avoid music, echo, and other speakers. Read the passage below or describe an everyday scene. The words in this sample do not become companion memories.</p>
       <details className="sample-script" open><summary>Guided reading passage</summary>{SAMPLE_SCRIPT.split("\n\n").map((paragraph) => <p key={paragraph}>{paragraph}</p>)}</details>
-      <AudioRecorder label="Voice sample" minSeconds={60} maxSeconds={180} onRecording={setSample} disabled={busy} />
+      {sample && <p className="form-note">Your earlier voice sample is saved and ready. Record again only if you want to replace it.</p>}
+      <AudioRecorder label="Voice sample" minSeconds={60} maxSeconds={180} onRecording={(recording) => { if (recording) setSample(recording); }} disabled={busy} />
       <p className="form-note">Familiar checks the length and audio level before creating a voice. The sample is removed locally after processing; your consent recording is kept with the voice profile.</p>
       <BigButton type="submit" disabled={!consent || !sample || !owner || !accepted || busy}>{busy ? "Checking recordings and creating voice…" : "Create my AI voice"}</BigButton>
-      <button type="button" disabled={busy} className="text-button" onClick={() => { setSample(null); setStep(2); }}>Review consent</button>
+      <button type="button" disabled={busy} className="text-button" onClick={() => setStep(2)}>Review consent</button>
       {busy && <p role="status">This may take a minute. Keep this page open; the voice library will show the result if the connection is interrupted.</p>}
     </form>}
     {step === 4 && voice && <div><p>Your recorded permission is saved. This is an AI recreation, not the real person speaking.</p>{voice.cloning_status === "ready" ? <VoicePreview id={voice.id} name={voice.display_name} token={token} /> : <p>The voice was created, but ElevenLabs requires owner verification before it can be previewed. The person setting up Familiar can review it in the voice library.</p>}{!token && <Link className="big-button" href="/caregiver/voices">Go to voice library</Link>}</div>}

@@ -9,11 +9,39 @@ export function consentStatement(name: string): string {
   return `I am ${name.trim()}. I am recording my own voice. I give Familiar permission to make an AI recreation of my voice using ElevenLabs. I understand it will be clearly labeled as AI, and I can ask for it to be deleted.`;
 }
 
-const normalized = (value: string) => value.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase().replace(/\bi['’]m\b/g, "i am").replace(/\blabelled\b/g, "labeled").replace(/[^\p{L}\p{N}]/gu, "");
+// Speech recognition varies in spelling and spacing ("A.I.", "Eleven Labs", "labelled"), so words are compared
+// after normalizing those forms.
+function words(value: string): string[] {
+  return value.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase().replace(/['’]/g, "")
+    .replace(/\bim\b/g, "i am").replace(/\blabelled\b/g, "labeled").replace(/\ba\.?\s?i\b\.?/g, "ai").replace(/\b(?:eleven|11)\s+labs\b/g, "elevenlabs")
+    .split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+}
+
+function distance<T>(a: T[], b: T[]): number {
+  let row = Array.from({ length: b.length + 1 }, (_, index) => index);
+  for (let i = 1; i <= a.length; i++) {
+    const next = [i];
+    for (let j = 1; j <= b.length; j++) next[j] = Math.min(row[j] + 1, next[j - 1] + 1, row[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    row = next;
+  }
+  return row[b.length];
+}
+
+const REFUSAL = new Set(["not", "no", "never", "dont", "cant", "cannot", "wont", "withdraw", "revoke", "refuse", "without", "unless"]);
+const startOf = (tokens: string[]) => tokens.findIndex((word, index) => index >= 2 && word === "i" && tokens[index + 1] === "am" && tokens[index + 2] === "recording");
+
 export function matchesConsent(transcript: string, name: string): boolean {
-  // Match the entire statement, rather than keywords that could also appear in
-  // "I do not give permission" or a later withdrawal of consent.
-  return Boolean(name.trim()) && normalized(transcript) === normalized(consentStatement(name));
+  if (!name.trim()) return false;
+  const heard = words(transcript), expected = words(consentStatement(name));
+  // The whole statement must be present: keywords alone could also appear in "I do not give permission"
+  // or a later withdrawal, so refusals and more than a few differing words are rejected.
+  if (heard[0] !== "i" || heard[1] !== "am" || heard.some((word) => REFUSAL.has(word))) return false;
+  const heardBody = startOf(heard), expectedBody = startOf(expected);
+  if (heardBody < 3 || expectedBody < 3) return false;
+  // Unusual names are often misspelled by transcription, so the spoken name may differ slightly.
+  const saidName = [...heard.slice(2, heardBody).join("")], ownName = [...expected.slice(2, expectedBody).join("")];
+  if (distance(saidName, ownName) > Math.max(1, Math.floor(ownName.length * 0.4))) return false;
+  return distance(heard.slice(heardBody), expected.slice(expectedBody)) <= 3;
 }
 
 export function validOwnerDetails(name: string, relationship: string): boolean {

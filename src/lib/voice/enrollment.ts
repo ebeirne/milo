@@ -39,8 +39,9 @@ export async function enrollVoice(input: EnrollmentInput, signal: AbortSignal, d
   const consent = await dependencies.inspect(input.consent, input.consentMime, signal);
   const consentProblem = qualityProblem(consent.quality, CONSENT_MIN_SECONDS, CONSENT_MAX_SECONDS);
   if (consentProblem) throw new Error(`Consent recording: ${consentProblem}`);
-  const transcript = await dependencies.transcribe({ data: Buffer.from(input.consent).toString("base64"), mimeType: input.consentMime }, signal);
-  if (!matchesConsent(transcript, input.name)) throw new Error("Please record the consent statement clearly in your own voice, including your name and permission to create the AI recreation.");
+  const transcript = await dependencies.transcribe({ data: Buffer.from(input.consent).toString("base64"), mimeType: input.consentMime }, signal, undefined, input.name);
+  // Showing what was heard lets the owner see which words to repeat more clearly.
+  if (!matchesConsent(transcript, input.name)) throw new Error(`Please record the consent statement again, reading every word as written. ${transcript.trim() ? `We heard: “${transcript.trim().slice(0, 400)}”` : "We could not hear any words."}`);
   const sample = await dependencies.inspect(input.sample, input.sampleMime, signal);
   const sampleProblem = qualityProblem(sample.quality, SAMPLE_MIN_SECONDS, SAMPLE_MAX_SECONDS);
   if (sampleProblem) throw new Error(`Voice sample: ${sampleProblem}`);
