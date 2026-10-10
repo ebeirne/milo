@@ -1,8 +1,8 @@
 import "server-only";
-import { ReplyParser, type ConversationEvent } from "./protocol";
+import { ReplyParser, type ConversationEvent, type SpeakerInfo } from "./protocol";
 import { speechTicket } from "./tickets";
 
-export function conversationStream(input: { conversationId: string; text?: string; startedAt: number; evaluationId?: string }, requestSignal: AbortSignal, dependencies: {
+export function conversationStream(input: { conversationId: string; text?: string; startedAt: number; evaluationId?: string; speaker?: { info: SpeakerInfo; switched: boolean } | null }, requestSignal: AbortSignal, dependencies: {
   reply: (signal: AbortSignal, notice: (model: { provider: "sonnet" | "gemini"; fallback: boolean }) => void) => AsyncIterable<string>;
   save: (heard: string, reply: string) => Promise<void>;
   release: () => void;
@@ -22,6 +22,7 @@ export function conversationStream(input: { conversationId: string; text?: strin
         let firstPhraseMs: number | null = null;
         try {
           emit({ type: "start", conversationId: input.conversationId, ...(input.evaluationId ? { evaluationId: input.evaluationId } : {}) });
+          emit({ type: "speaker", speaker: input.speaker?.info ?? null, switched: input.speaker?.switched ?? false });
           const parser = new ReplyParser();
           const sendSentences = (sentences: string[]) => {
             if (!heard && parser.transcript) {
@@ -30,7 +31,7 @@ export function conversationStream(input: { conversationId: string; text?: strin
             }
             for (const sentence of sentences) {
               firstPhraseMs ??= Math.round(performance.now() - input.startedAt);
-              emit({ type: "sentence", text: sentence, ticket: speechTicket(sentence, previousText) });
+              emit({ type: "sentence", text: sentence, ticket: speechTicket(sentence, previousText, input.speaker?.info.id ?? null) });
               previousText += `${sentence} `;
             }
           };
@@ -44,7 +45,7 @@ export function conversationStream(input: { conversationId: string; text?: strin
           if (!signal.aborted) {
             const fallback = "I'm having trouble right now. Please try again, or contact someone you trust.";
             emit({ type: "error", message: fallback });
-            if (!previousText) emit({ type: "sentence", text: fallback, ticket: speechTicket(fallback, "") });
+            if (!previousText) emit({ type: "sentence", text: fallback, ticket: speechTicket(fallback, "", input.speaker?.info.id ?? null) });
           }
         } finally {
           dependencies.release();

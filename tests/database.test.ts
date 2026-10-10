@@ -33,7 +33,7 @@ test("all brief tables are created and migrations can safely run twice", async (
     "caregiver", "checkin", "conversation", "flag", "memory_fact", "patient",
     "record_link", "reminder", "reply_evaluation", "schema_migrations", "topic_rule", "turn", "voice_profile",
   ]);
-  assert.equal((await client.query("SELECT * FROM familiar.schema_migrations")).rows.length, 3);
+  assert.equal((await client.query("SELECT * FROM familiar.schema_migrations")).rows.length, 4);
 });
 
 test("setup persists and updates do not create another household", async () => {

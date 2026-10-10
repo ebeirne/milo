@@ -25,6 +25,7 @@ export type VoiceSummary = {
   id: string; display_name: string; relationship: string;
   cloning_status: "pending" | "ready" | "verification_required" | "failed" | "unknown" | "deleting";
   consent_recorded_at: string; created_at: string;
+  active: boolean; persona: import("./persona").Persona;
 };
 
 export const SAMPLE_SCRIPT = [

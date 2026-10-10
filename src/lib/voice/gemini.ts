@@ -2,6 +2,7 @@ import "server-only";
 import { providerFetch } from "./provider-fetch";
 import { voiceSettings } from "./config";
 import { readSse } from "./protocol";
+import { familyPrompt, type Speaker } from "./prompt";
 
 export type HistoryTurn = { role: "user" | "assistant"; text: string };
 export type GeminiInput = {
@@ -9,7 +10,14 @@ export type GeminiInput = {
   audio?: { data: string; mimeType: string };
   preferredName: string;
   history: HistoryTurn[];
+  speaker?: Speaker | null;
+  handoffFrom?: string | null;
 };
+
+// A selected family voice gets the persona contract; otherwise the stock companion prompt is used.
+export function systemPrompt(input: GeminiInput, audio: boolean): string {
+  return input.speaker ? familyPrompt({ preferredName: input.preferredName, audio, speaker: input.speaker, handoffFrom: input.handoffFrom }) : stockPrompt(input.preferredName, audio);
+}
 
 export function stockPrompt(preferredName: string, audio: boolean): string {
   return [
@@ -62,7 +70,7 @@ export async function* streamGemini(input: GeminiInput, signal: AbortSignal, fet
     method: "POST", signal: AbortSignal.any([signal, AbortSignal.timeout(30000)]),
     headers: { "x-goog-api-key": settings.geminiKey, "Content-Type": "application/json" },
     body: JSON.stringify({
-      systemInstruction: { parts: [{ text: stockPrompt(input.preferredName, Boolean(input.audio)) }] },
+      systemInstruction: { parts: [{ text: systemPrompt(input, Boolean(input.audio)) }] },
       contents: [
         ...input.history.map((turn) => ({ role: turn.role === "assistant" ? "model" : "user", parts: [{ text: turn.text }] })),
         { role: "user", parts },

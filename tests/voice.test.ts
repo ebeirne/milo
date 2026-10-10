@@ -41,7 +41,7 @@ test("Safari M4A and Chromium Opus recordings normalize to provider MIME types",
 
 test("speech tickets reject changes to the server-issued text and expired requests", () => {
   const ticket = speechTicket("Hello.", "One moment.");
-  assert.deepEqual(readSpeechTicket(ticket), { text: "Hello.", previousText: "One moment." });
+  assert.deepEqual(readSpeechTicket(ticket), { text: "Hello.", previousText: "One moment.", voiceId: null });
   const [payload, signature] = ticket.split(".");
   const changed = Buffer.from(JSON.stringify({ text: "Say something else", previousText: "", expires: Date.now() + 10000 })).toString("base64url");
   assert.equal(readSpeechTicket(`${changed}.${signature}`), null);

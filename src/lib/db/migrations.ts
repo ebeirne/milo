@@ -154,6 +154,14 @@ const migrations = [
       CREATE INDEX record_link_expiry_idx ON familiar.record_link(expires_at);
     `,
   },
+  {
+    version: 4,
+    name: "voice_rotation",
+    sql: `
+      ALTER TABLE familiar.patient ADD COLUMN rotation_policy TEXT NOT NULL DEFAULT 'single'
+        CHECK (rotation_policy IN ('single', 'round_robin_per_topic', 'random_weighted'));
+    `,
+  },
 ];
 
 export async function applyMigrations(client: SqlClient): Promise<void> {

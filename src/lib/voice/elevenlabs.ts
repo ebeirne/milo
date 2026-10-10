@@ -26,14 +26,16 @@ async function assertStockVoice(signal: AbortSignal, fetchProvider: typeof provi
   state.familiarStockVoice = { id: settings.stockVoiceId, expires: Date.now() + 300000 };
 }
 
-export async function streamSpeech(text: string, previousText: string, signal: AbortSignal, fetchProvider: typeof providerFetch = providerFetch): Promise<Response> {
+// `cloneVoiceId` is only passed after the caller has verified consent for that provider voice.
+export async function streamSpeech(text: string, previousText: string, signal: AbortSignal, fetchProvider: typeof providerFetch = providerFetch, cloneVoiceId?: string): Promise<Response> {
   const settings = voiceSettings();
   if (!settings.elevenlabsKey) throw new Error("Speech provider not configured");
   const activeSignal = AbortSignal.any([signal, AbortSignal.timeout(30000)]);
-  await assertStockVoice(activeSignal, fetchProvider);
+  if (!cloneVoiceId) await assertStockVoice(activeSignal, fetchProvider);
+  const voiceId = cloneVoiceId ?? settings.stockVoiceId;
   const speech = cleanSpeech(text);
   if (!speech) throw new Error("No speech available");
-  const response = await fetchProvider(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(settings.stockVoiceId)}/stream?output_format=mp3_44100_128`, {
+  const response = await fetchProvider(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}/stream?output_format=mp3_44100_128`, {
     method: "POST", signal: activeSignal,
     headers: { "xi-api-key": settings.elevenlabsKey, "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -46,35 +48,48 @@ export async function streamSpeech(text: string, previousText: string, signal: A
   return response;
 }
 
-export function fillerKey(phrase: keyof typeof FIXED_PHRASES, voiceId: string, model: string): string {
-  return createHash("sha256").update(JSON.stringify([voiceId, model, FIXED_PHRASES[phrase], "mp3_44100_128", 0.85])).digest("hex");
+export type FillerVoice = { providerId: string; name: string } | null;
+
+export function fillerText(phrase: keyof typeof FIXED_PHRASES, voice: FillerVoice): string {
+  if (phrase === "disclosure" && voice) return `I'm an AI voice of ${voice.name}, recorded with their permission. I'm not ${voice.name}.`;
+  return FIXED_PHRASES[phrase];
 }
 
-export async function getFiller(phrase: keyof typeof FIXED_PHRASES): Promise<Uint8Array> {
+export function fillerKey(phrase: keyof typeof FIXED_PHRASES, voiceId: string, model: string, voice: FillerVoice = null): string {
+  return createHash("sha256").update(JSON.stringify([voiceId, model, fillerText(phrase, voice), "mp3_44100_128", 0.85])).digest("hex");
+}
+
+export async function getFiller(phrase: keyof typeof FIXED_PHRASES, voice: FillerVoice = null): Promise<Uint8Array> {
   const settings = voiceSettings();
-  const key = fillerKey(phrase, settings.stockVoiceId, settings.ttsModel);
+  const key = fillerKey(phrase, voice?.providerId ?? settings.stockVoiceId, settings.ttsModel, voice);
+  // A phrase containing a family member's name is kept in memory only; fixed nonpersonal phrases may be cached on disk.
+  const persist = !(voice && phrase === "disclosure");
   const cache = state.familiarFiller ??= new Map();
   if (!cache.has(key)) {
     const pending = (async () => {
       const root = path.resolve("data/filler");
       const filename = path.join(root, `${key}.mp3`);
-      try {
-        const bytes = await readFile(filename);
-        if (bytes.length >= 100 && bytes.length <= 256000) return new Uint8Array(bytes);
-      } catch { /* A cache miss is normal. */ }
-      const response = await streamSpeech(FIXED_PHRASES[phrase], "", AbortSignal.timeout(30000));
+      if (persist) {
+        try {
+          const bytes = await readFile(filename);
+          if (bytes.length >= 100 && bytes.length <= 256000) return new Uint8Array(bytes);
+        } catch { /* A cache miss is normal. */ }
+      }
+      const response = await streamSpeech(fillerText(phrase, voice), "", AbortSignal.timeout(30000), providerFetch, voice?.providerId);
       const bytes = new Uint8Array(await response.arrayBuffer());
       if (bytes.length < 100 || bytes.length > 256000) throw new Error("Filler audio unavailable");
-      try {
-        await mkdir(root, { recursive: true });
-        const temporary = `${filename}.tmp`;
-        await writeFile(temporary, bytes);
-        await rename(temporary, filename);
-      } catch { /* Disk caching is optional; only fixed non-personal phrases are cached. */ }
+      if (persist) {
+        try {
+          await mkdir(root, { recursive: true });
+          const temporary = `${filename}.tmp`;
+          await writeFile(temporary, bytes);
+          await rename(temporary, filename);
+        } catch { /* Disk caching is optional. */ }
+      }
       return bytes;
     })().catch((error: unknown) => { cache.delete(key); throw error; });
     cache.set(key, pending);
-    if (cache.size > 8) cache.delete(cache.keys().next().value!);
+    if (cache.size > 16) cache.delete(cache.keys().next().value!);
   }
   return cache.get(key)!;
 }

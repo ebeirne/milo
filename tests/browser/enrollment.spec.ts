@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
 const token = "A".repeat(43);
-const voice = { id: "00000000-0000-4000-8000-000000000001", display_name: "Sarah", relationship: "Daughter", cloning_status: "ready", consent_recorded_at: "2026-10-10T12:00:00Z", created_at: "2026-10-10T12:00:00Z" };
+const voice = { id: "00000000-0000-4000-8000-000000000001", display_name: "Sarah", relationship: "Daughter", cloning_status: "ready", consent_recorded_at: "2026-10-10T12:00:00Z", created_at: "2026-10-10T12:00:00Z", active: false, persona: { how_they_talk: "", pet_names: [], humor: "", shared_facts: [], never_claim: [] } };
 
 async function fakeRecorder(page: Page) {
   await page.addInitScript(() => {
@@ -97,7 +97,27 @@ test("library deletion requires confirmation and removes the card only after suc
   expect(deleted).toBe(true);
 });
 
-test("missing ownership and consent acknowledgments cannot reach cloning", async ({ request }) => {
+test("a ready voice can be given a persona and turned on for conversations", async ({ page }) => {
+  await page.route("**/api/voices", (route) => route.fulfill({ json: { voices: [voice] } }));
+  const sent: Record<string, unknown>[] = [];
+  await page.route(`**/api/voices/${voice.id}`, (route) => {
+    const body = route.request().postDataJSON();
+    sent.push(body);
+    return route.fulfill({ json: { voice: { ...voice, active: body.active ?? false, persona: body.persona ?? voice.persona } } });
+  });
+  await page.goto("/caregiver/voices");
+  await page.getByText("How Sarah sounds").click();
+  await page.getByLabel("How they talk").fill("Gentle and unhurried");
+  await page.getByLabel(/Shared facts/).fill("We love the garden.\nWe bake on Sundays.");
+  await page.getByRole("button", { name: "Save persona" }).click();
+  await expect(page.getByText("Saved.")).toBeVisible();
+  expect(sent[0]).toMatchObject({ persona: { how_they_talk: "Gentle and unhurried", shared_facts: ["We love the garden.", "We bake on Sundays."] } });
+  await page.getByRole("button", { name: "Use in conversations" }).click();
+  await expect(page.getByText("Used in conversations", { exact: true })).toBeVisible();
+  expect(sent[1]).toEqual({ active: true });
+});
+
+test("missing ownership and consent acknowledgments cannot reach cloning",async ({ request }) => {
   const response = await request.post("/api/voices", { multipart: { name: "Sarah", relationship: "Daughter", submissionId: voice.id } });
   expect(response.status()).toBe(400);
   expect((await response.json()).message).toContain("explicitly agree");

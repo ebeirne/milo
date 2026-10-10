@@ -91,7 +91,13 @@ main { flex: 1; outline: none; }
 .field { margin-top: 20px; min-width: 0; }
 .field label { display: block; font-size: 20px; font-weight: 600; margin-bottom: 8px; }
 .optional { color: var(--muted); font-weight: 400; }
-.field input, .field select { width: 100%; min-height: 58px; border: 1px solid #929d8a; border-radius: 10px; padding: 12px 14px; background: #fffefa; color: var(--ink); font-size: 20px; }
+.field input, .field select, .field textarea { width: 100%; min-height: 58px; border: 1px solid #929d8a; border-radius: 10px; padding: 12px 14px; background: #fffefa; color: var(--ink); font-size: 20px; }
+.field textarea { min-height: 96px; line-height: 1.4; font: inherit; font-size: 20px; resize: vertical; }
+.persona-form { margin-top: 12px; }
+.persona-form summary { cursor: pointer; font-weight: 600; font-size: 20px; min-height: 44px; display: flex; align-items: center; }
+.speaker-badge { display: flex; align-items: center; gap: 14px; margin-top: 8px; }
+.speaker-avatar { width: 56px; height: 56px; border-radius: 50%; background: #dce8cf; color: #223d2e; display: grid; place-items: center; font-size: 26px; font-weight: 700; flex: none; }
+.voice-toggle { margin-top: 12px; }
 .field input::placeholder { color: #677160; opacity: 1; }
 .field input[aria-invalid="true"], .field select[aria-invalid="true"] { border-color: #9e3d2d; }
 .field-note, .field-error { font-size: 20px; margin-top: 8px; line-height: 1.5; }

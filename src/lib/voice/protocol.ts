@@ -1,11 +1,15 @@
 export type ConversationEvent =
   | { type: "model"; provider: "sonnet" | "gemini"; fallback: boolean }
   | { type: "start"; conversationId: string; evaluationId?: string }
+  | { type: "speaker"; speaker: SpeakerInfo | null; switched: boolean }
   | { type: "transcript"; text: string }
   | { type: "sentence"; text: string; ticket: string }
   | { type: "timings"; firstPhraseMs: number }
   | { type: "error"; message: string }
   | { type: "done" };
+
+// Public speaker details; provider voice IDs never reach the browser.
+export type SpeakerInfo = { id: string; name: string; relationship: string; label: string };
 
 export type VoiceConfig = {
   ready: boolean;
@@ -15,6 +19,7 @@ export type VoiceConfig = {
   microphoneReady?: boolean;
   conversationProvider?: "sonnet" | "gemini";
   evaluatorConfigured?: boolean;
+  speakers?: SpeakerInfo[];
 };
 
 export const STOCK_VOICE_LABEL = "AI stock voice · not a family member’s voice";

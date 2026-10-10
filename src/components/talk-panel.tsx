@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Mic, Send, Square, Volume2, MessageCircle } from "lucide-react";
 import { BigButton } from "./big-button";
 import { VoicePlayer } from "@/lib/voice/player";
-import { readSse, STOCK_VOICE_LABEL, type ConversationEvent, type VoiceConfig } from "@/lib/voice/protocol";
+import { readSse, STOCK_VOICE_LABEL, type ConversationEvent, type SpeakerInfo, type VoiceConfig } from "@/lib/voice/protocol";
 import type { Evaluation } from "@/lib/voice/jev";
 
 type Status = "loading" | "idle" | "starting" | "recording" | "thinking" | "speaking";
@@ -27,6 +27,7 @@ export function TalkPanel() {
   const [debug, setDebug] = useState(false);
   const [model, setModel] = useState<{ provider: "sonnet" | "gemini"; fallback: boolean } | null>(null);
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
+  const [speaker, setSpeaker] = useState<SpeakerInfo | null>(null);
   const [level, setLevel] = useState(0);
   const [seconds, setSeconds] = useState(0);
   const [volume, setVolume] = useState(80);
@@ -39,8 +40,9 @@ export function TalkPanel() {
   const micAnalyser = useRef<AnalyserNode | null>(null);
   const autoFinish = useRef<ReturnType<typeof setTimeout> | null>(null);
   const conversationId = useRef<string | null>(null);
-  const fillers = useRef<Partial<Record<"thinking" | "disclosure", ArrayBuffer>>>({});
-  const introduced = useRef(false);
+  // Filler audio is keyed by voice, so a family voice never borrows the stock voice's phrases.
+  const fillers = useRef<Record<string, ArrayBuffer>>({});
+  const introduced = useRef(new Set<string>());
   const statusRef = useRef<Status>("loading");
   const stopRef = useRef<() => void>(() => {});
   const metricRef = useRef<Metrics>({});
@@ -90,10 +92,12 @@ export function TalkPanel() {
         setStatus("idle");
         statusRef.current = "idle";
         if (value.ready) {
-          await Promise.allSettled((["thinking", "disclosure"] as const).map(async (phrase) => {
-            const audio = await fetch(`/api/filler?phrase=${phrase}`, { signal: abort.signal });
-            if (audio.ok) fillers.current[phrase] = await audio.arrayBuffer();
-          }));
+          const voiceIds: (string | null)[] = value.speakers?.length ? value.speakers.map((item) => item.id) : [null];
+          if (value.speakers?.length === 1) setSpeaker(value.speakers[0]);
+          await Promise.allSettled(voiceIds.flatMap((voiceId) => (["thinking", "disclosure"] as const).map(async (phrase) => {
+            const audio = await fetch(`/api/filler?phrase=${phrase}${voiceId ? `&voice=${voiceId}` : ""}`, { signal: abort.signal });
+            if (audio.ok) fillers.current[`${voiceId ?? "stock"}:${phrase}`] = await audio.arrayBuffer();
+          })));
         }
       } catch {
         if (!abort.signal.aborted) {
@@ -157,14 +161,20 @@ export function TalkPanel() {
       addMetrics({ ...(metricRef.current.firstPlaybackMs === undefined ? { firstPlaybackMs: elapsed } : {}), ...(isReply && metricRef.current.firstReplyPlaybackMs === undefined ? { firstReplyPlaybackMs: elapsed } : {}) });
       updateStatus("speaking");
     };
-    const filler = !introduced.current ? fillers.current.disclosure : fillers.current.thinking;
     let playback = Promise.resolve();
-    if (filler) {
-      playback = player.current!.queue(filler, () => {
-        introduced.current = true;
+    // Each voice discloses itself the first time it speaks; afterwards it uses a short filler.
+    const playFiller = (voiceId: string | null) => {
+      const key = voiceId ?? "stock";
+      const filler = fillers.current[`${key}:${introduced.current.has(key) ? "thinking" : "disclosure"}`];
+      if (!filler) return;
+      playback = playback.then(() => currentVersion === version.current ? player.current!.queue(filler, () => {
+        introduced.current.add(key);
         playbackStarted(false);
-      }).catch(() => {});
-    }
+      }) : undefined).catch(() => {});
+    };
+    // With family voices the server chooses who speaks, so the filler waits for that choice.
+    const awaitSpeaker = Boolean(config?.speakers?.length);
+    if (!awaitSpeaker) playFiller(null);
     let streamFinished = false;
     let hadError = false;
     let evaluationId: string | undefined;
@@ -179,6 +189,7 @@ export function TalkPanel() {
         if (currentVersion !== version.current) return;
         const event = JSON.parse(eventData) as ConversationEvent;
         if (event.type === "start") { conversationId.current = event.conversationId; evaluationId = event.evaluationId; }
+        if (event.type === "speaker") { setSpeaker(event.speaker); if (awaitSpeaker) playFiller(event.speaker?.id ?? null); }
         if (event.type === "model") setModel({ provider: event.provider, fallback: event.fallback });
         if (event.type === "transcript") setHeard(event.text);
         if (event.type === "error") { setMessage(event.message); hadError = true; }
@@ -315,7 +326,9 @@ export function TalkPanel() {
   const busy = ["starting", "thinking", "speaking"].includes(status);
   return (
     <section className="talk-panel" aria-labelledby="talk-title">
-      <div className="talk-voice"><MessageCircle size={26} aria-hidden="true" /><span>{STOCK_VOICE_LABEL}</span></div>
+      {speaker
+        ? <div className="talk-voice speaker-badge" aria-live="polite"><span className="speaker-avatar" aria-hidden="true">{speaker.name.slice(0, 1).toUpperCase()}</span><span><strong>{speaker.name}</strong> · {speaker.relationship}<br />{speaker.label}</span></div>
+        : <div className="talk-voice"><MessageCircle size={26} aria-hidden="true" /><span>{config?.label ?? STOCK_VOICE_LABEL}</span></div>}
       <h1 id="talk-title">{config?.preferredName ? `Hello, ${config.preferredName}.` : "A little company."}</h1>
       <p className="talk-instruction">Tap Talk to speak. Tap Finish when you’re done.</p>
       <div className="voice-wave" aria-hidden="true">{Array.from({ length: 19 }, (_, index) => <span key={index} style={{ height: `${8 + Math.min(level * 900, 55) * (0.3 + Math.sin(index * 1.9) ** 2 * 0.7)}px` }} />)}</div>
@@ -329,7 +342,7 @@ export function TalkPanel() {
         <BigButton secondary className="stop-button" disabled={status === "idle" || status === "loading"} onClick={stop}><Square size={24} aria-hidden="true" />Stop</BigButton>
       </div>
       {message && <p className="talk-message" role="alert">{message}</p>}
-      {reply && <div className="reply-caption"><span>Familiar’s reply</span><p>{reply}</p></div>}
+      {reply && <div className="reply-caption"><span>{speaker ? `AI voice of ${speaker.name}` : "Familiar’s reply"}</span><p>{reply}</p></div>}
       <label className="volume-control"><Volume2 size={25} aria-hidden="true" /><span>Voice volume</span><input aria-label="Voice volume" type="range" min="0" max="100" value={volume} onChange={(event) => { const value = Number(event.target.value); setVolume(value); player.current?.setVolume(value / 100); }} /></label>
       <details className="help-panel type-fallback">
         <summary>Prefer to type?</summary>

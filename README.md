@@ -16,7 +16,7 @@ The intended experience brings together:
 
 Voice owners must give recorded consent before cloning. The companion always identifies voices as AI recreations, never impersonates the real person, and never invents shared memories. It is not a source of medical advice. The planned emergency flow surfaces call options and alerts caregivers; it never automatically dials.
 
-Familiar is in early development. Patient home, caregiver setup, stock-voice conversations, and consented family voice recording, cloning, previews, and deletion are available when the database and providers are configured. Family voices will be connected to conversations alongside personas and rotation. Scheduling and caregiver summaries are planned.
+Familiar is in early development. Patient home, caregiver setup, stock-voice conversations, and consented family voice recording, cloning, previews, and deletion are available when the database and providers are configured. Caregivers can give each ready family voice a persona, turn it on for conversations, and choose how several voices take turns; the Talk screen always shows which AI voice is speaking. Scheduling and caregiver summaries are planned.
 
 ## Tech stack
 

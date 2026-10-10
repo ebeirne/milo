@@ -3,7 +3,9 @@ import { randomUUID } from "node:crypto";
 import { ensureDatabase, withTransaction } from "./database";
 import type { HistoryTurn } from "../voice/gemini";
 
-export async function openConversation(patientId: string, previousId: string | null): Promise<{ id: string; history: HistoryTurn[] }> {
+export type ConversationState = { id: string; history: HistoryTurn[]; last: { id: string; streak: number; recent: string[] } | null; userTurns: string[] };
+
+export async function openConversation(patientId: string, previousId: string | null): Promise<ConversationState> {
   const pool = await ensureDatabase();
   // The brief's default retention window; raw audio is never stored.
   await pool.query("DELETE FROM familiar.turn WHERE created_at < now() - interval '7 days'");
@@ -26,16 +28,23 @@ export async function openConversation(patientId: string, previousId: string | n
     characters += text.length;
     history.unshift({ role: turn.role, text });
   }
-  return { id, history };
+  // The speaking voice is stored per assistant turn, so rotation is derived from persisted state.
+  const { rows: spoken } = await pool.query<{ voice_profile_id: string | null }>(
+    "SELECT voice_profile_id FROM familiar.turn WHERE conversation_id = $1 AND role = 'assistant' ORDER BY created_at DESC, id DESC LIMIT 8", [id]);
+  const recent = spoken.map((row) => row.voice_profile_id).filter((value): value is string => Boolean(value));
+  const lastId = spoken[0]?.voice_profile_id ?? null;
+  let streak = 0;
+  for (const row of spoken) { if (row.voice_profile_id !== lastId) break; streak++; }
+  return { id, history, last: lastId ? { id: lastId, streak, recent } : null, userTurns: history.filter((turn) => turn.role === "user").map((turn) => turn.text) };
 }
 
-export async function saveConversationTurn(conversationId: string, heard: string, reply: string): Promise<void> {
+export async function saveConversationTurn(conversationId: string, heard: string, reply: string, voiceId: string | null = null): Promise<void> {
   await withTransaction(async (client) => {
     // Distinct timestamps keep deterministic order within one transaction.
     await client.query(`
-      INSERT INTO familiar.turn (id, conversation_id, role, text, created_at)
-      VALUES ($1, $2, 'user', $3, clock_timestamp()),
-             ($4, $2, 'assistant', $5, clock_timestamp() + interval '1 millisecond')
-    `, [randomUUID(), conversationId, heard.slice(0, 2000), randomUUID(), reply.slice(0, 1000)]);
+      INSERT INTO familiar.turn (id, conversation_id, role, text, created_at, voice_profile_id)
+      VALUES ($1, $2, 'user', $3, clock_timestamp(), NULL),
+             ($4, $2, 'assistant', $5, clock_timestamp() + interval '1 millisecond', $6)
+    `, [randomUUID(), conversationId, heard.slice(0, 2000), randomUUID(), reply.slice(0, 1000), voiceId]);
   });
 }

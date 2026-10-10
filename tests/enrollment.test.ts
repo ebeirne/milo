@@ -15,11 +15,11 @@ function fakeDependencies(events: string[]): EnrollmentDependencies {
   return {
     async inspect(bytes) { return { quality: { ...goodQuality, duration: bytes[0] === 1 ? 20 : 65 }, sample: bytes }; },
     async transcribe() { events.push("consent checked"); return consentStatement("Sarah"); },
-    async reserve() { events.push("reserved"); return { voice: { ...input, id: input.id, display_name: "Sarah", relationship: "Daughter", cloning_status: "pending", consent_recorded_at: "2026-10-10", created_at: "2026-10-10", patient_id: "test", elevenlabs_voice_id: null, consent_audio_ref: "test.audio", consenter_name: "Sarah", consent_statement: consentStatement("Sarah") }, reserved: true }; },
+    async reserve() { events.push("reserved"); return { voice: { ...input, id: input.id, display_name: "Sarah", relationship: "Daughter", cloning_status: "pending", consent_recorded_at: "2026-10-10", created_at: "2026-10-10", patient_id: "test", elevenlabs_voice_id: null, consent_audio_ref: "test.audio", consenter_name: "Sarah", consent_statement: consentStatement("Sarah"), active: false, persona_json: {} }, reserved: true }; },
     async storeConsent() { events.push("stored consent"); },
     async confirmStored() { events.push("confirmed file"); },
     async clone() { events.push("cloned"); return { voiceId: "test-clone", requiresVerification: false }; },
-    async finish(_id, _voiceId, verification) { events.push("finished"); return { id: input.id, display_name: "Sarah", relationship: "Daughter", cloning_status: verification ? "verification_required" : "ready", consent_recorded_at: "2026-10-10", created_at: "2026-10-10" }; },
+    async finish(_id, _voiceId, verification) { events.push("finished"); return { id: input.id, display_name: "Sarah", relationship: "Daughter", cloning_status: verification ? "verification_required" : "ready", consent_recorded_at: "2026-10-10", created_at: "2026-10-10", active: false, persona: { how_they_talk: "", pet_names: [], humor: "", shared_facts: [], never_claim: [] } }; },
     async fail(_id, unknown) { events.push(unknown ? "unknown" : "failed"); },
   };
 }

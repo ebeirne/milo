@@ -1,6 +1,6 @@
 import "server-only";
 import { voiceSettings } from "./config";
-import { stockPrompt, type GeminiInput } from "./gemini";
+import { systemPrompt, type GeminiInput } from "./gemini";
 import { providerFetch } from "./provider-fetch";
 import { readSse } from "./protocol";
 
@@ -13,7 +13,7 @@ export async function* streamSonnet(input: GeminiInput & { text: string }, signa
     body: JSON.stringify({
       model: settings.sonnetModel, max_tokens: 384, stream: true,
       thinking: { type: "between_tools" }, output_config: { effort: "low" },
-      system: stockPrompt(input.preferredName, false),
+      system: systemPrompt(input, false),
       messages: [...input.history.map((turn) => ({ role: turn.role, content: turn.text })), { role: "user", content: input.text }],
     }),
   });
