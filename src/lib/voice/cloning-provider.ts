@@ -3,7 +3,8 @@ import { providerFetch } from "./provider-fetch";
 import { voiceSettings } from "./config";
 
 export class CloneProviderError extends Error {
-  constructor(public knownFailure: boolean) { super(knownFailure ? "Voice creation was not accepted. Check the ElevenLabs plan, voice slots, and Voices → Write permission, then try again." : "The provider’s result is uncertain. Check this request in ElevenLabs before trying again."); }
+  // `reason` is the provider's short status code (for example a plan or permission code), never free text.
+  constructor(public knownFailure: boolean, reason = "") { super(knownFailure ? `Voice creation was not accepted. Check the ElevenLabs plan, voice slots, and Voices → Write permission, then try again.${reason ? ` (ElevenLabs: ${reason})` : ""}` : "The provider’s result is uncertain. Check this request in ElevenLabs before trying again."); }
 }
 
 export async function createClone(name: string, sample: Uint8Array, fetchProvider: typeof providerFetch = providerFetch): Promise<{ voiceId: string; requiresVerification: boolean }> {
@@ -18,7 +19,14 @@ export async function createClone(name: string, sample: Uint8Array, fetchProvide
   try {
     response = await fetchProvider(encoded.url, { method: "POST", signal: AbortSignal.timeout(60000), headers: { "xi-api-key": key, "Content-Type": encoded.headers.get("content-type")! }, body: new Uint8Array(await encoded.arrayBuffer()) });
   } catch { throw new CloneProviderError(false); }
-  if (!response.ok) { await response.body?.cancel().catch(() => {}); throw new CloneProviderError(response.status >= 400 && response.status < 500); }
+  if (!response.ok) {
+    let reason = `HTTP ${response.status}`;
+    try {
+      const detail = (await response.json() as { detail?: { status?: unknown } }).detail;
+      if (typeof detail?.status === "string" && /^[\w-]{1,60}$/.test(detail.status)) reason = detail.status;
+    } catch { /* The status code alone is enough. */ }
+    throw new CloneProviderError(response.status >= 400 && response.status < 500, reason);
+  }
   try {
     const value = await response.json() as { voice_id?: string; requires_verification?: boolean };
     if (!value.voice_id || !/^[\w-]{1,100}$/.test(value.voice_id)) throw new Error("Invalid voice result");
